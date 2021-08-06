@@ -1,0 +1,3 @@
+[submodule "tornado-governance"]
+	path = tornado-governance
+	url = https://github.com/tornadocash/tornado-governance
