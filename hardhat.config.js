@@ -2,6 +2,7 @@ require("dotenv").config();
 require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
+require('hardhat-spdx-license-identifier');
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -34,7 +35,7 @@ module.exports = {
      mainnet: {
        url: process.env.mainnetRPC,
        accounts: [
-	       process.env.mainnetAccountPK
+	process.env.mainnetAccountPK,
        ],
        timeout: 2147483647
      },
@@ -47,5 +48,9 @@ module.exports = {
      },
    },
   mocha: { timeout: 9999999999 },
+  spdxLicenseIdentifier: {
+    overwrite: true,
+    runOnCompile: true,
+  }
 };
 
