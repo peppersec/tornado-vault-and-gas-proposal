@@ -1,3 +1,5 @@
+// SPDX-License-Identifier: MIT
+
 pragma solidity ^0.6.12;
 
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
@@ -5,8 +7,7 @@ import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 contract LotteryRandomNumberConsumer is VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
-
-    uint256 public randomResult;
+    uint256 internal randomResult;
 
     constructor()
         public
@@ -22,7 +23,7 @@ contract LotteryRandomNumberConsumer is VRFConsumerBase {
     /**
      * Requests randomness
      */
-    function getRandomNumber() public returns (bytes32 requestId) {
+    function getRandomNumber() internal returns (bytes32 requestId) {
         require(
             LINK.balanceOf(address(this)) >= fee,
             "Not enough LINK - fill contract"
