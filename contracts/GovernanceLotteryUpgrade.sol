@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import {Governance} from "../tornado-governance/contracts/Governance.sol";
+import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 
 contract GovernanceLotteryUpgrade is Governance, TornadoLotteryFunctionality {
-
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
     function version() external pure virtual returns (string memory) {
@@ -13,35 +14,39 @@ contract GovernanceLotteryUpgrade is Governance, TornadoLotteryFunctionality {
     }
 
     function _checkIfProposalIsActive(uint256 proposalId)
-        private
+        internal
         view
+        override
         returns (bool)
     {
-	return (state(proposalId) == ProposalState.Active);
+        return (state(proposalId) == ProposalState.Active);
     }
 
     function _checkIfProposalIsPending(uint256 proposalId)
-        private
+        internal
         view
+        override
         returns (bool)
     {
-	return (state(proposalId) == ProposalState.Pending);
+        return (state(proposalId) == ProposalState.Pending);
     }
 
     function _checkIfProposalIsFinished(uint256 proposalId)
-        private
+        internal
         view
+        override
         returns (bool)
     {
-	return ((state(proposalId) == ProposalState.Executed) || (state(proposalId) == ProposalState.Defeated));
+        return ((state(proposalId) == ProposalState.Executed) ||
+            (state(proposalId) == ProposalState.Defeated));
     }
 
     function _checkIfAccountHasVoted(uint256 proposalId, address account)
-        private
+        internal
         view
-        returns (bool);
+        override
+        returns (bool)
     {
-	return proposals[proposalId].receipts[account].hasVoted;
+        return (proposals[proposalId].receipts[account]).hasVoted;
     }
 }
-

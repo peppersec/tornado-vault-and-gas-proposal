@@ -37,16 +37,17 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
      */
     function fulfillRandomness(bytes32 requestId, uint256 randomness)
         internal
-	virtual
+        virtual
         override;
 
     // has to be modified for tornado governance
-    function expand(uint256 entropy, uint256 upperBound)
-        internal
-        pure
-        returns (uint256)
-    {
-        return (uint256(keccak256(abi.encode(randomResult, entropy))) %
-            upperBound);
+    function expand(
+        uint256 resultId,
+        uint256 entropy,
+        uint256 upperBound
+    ) internal view returns (uint256) {
+        return (uint256(
+            keccak256(abi.encode(randomResults[resultId], entropy))
+        ) % upperBound);
     }
 }

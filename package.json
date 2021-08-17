@@ -12,6 +12,7 @@
     "@nomiclabs/hardhat-waffle": "^2.0.1",
     "@openzeppelin/contracts": "3.2.0",
     "@openzeppelin/upgrades-core": "^1.0.1",
+    "abdk-libraries-solidity": "https://github.com/abdk-consulting/abdk-libraries-solidity.git#2.x",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
     "prettier-plugin-solidity": "^1.0.0-beta.17",
