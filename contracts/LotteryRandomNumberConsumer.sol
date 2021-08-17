@@ -4,10 +4,11 @@ pragma solidity ^0.6.12;
 
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
-contract LotteryRandomNumberConsumer is VRFConsumerBase {
+abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
     bytes32 internal keyHash;
     uint256 internal fee;
-    uint256 internal randomResult;
+    mapping(uint256 => uint256) internal randomResults;
+    uint256 internal idForLatestRandomNumber;
 
     constructor()
         public
@@ -37,10 +38,7 @@ contract LotteryRandomNumberConsumer is VRFConsumerBase {
     function fulfillRandomness(bytes32 requestId, uint256 randomness)
         internal
 	virtual
-        override
-    {
-        randomResult = randomness;
-    }
+        override;
 
     // has to be modified for tornado governance
     function expand(uint256 entropy, uint256 upperBound)

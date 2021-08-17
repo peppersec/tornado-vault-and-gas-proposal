@@ -847,10 +847,6 @@
   resolved "https://registry.yarnpkg.com/@yarnpkg/lockfile/-/lockfile-1.1.0.tgz#e77a97fbd345b76d83245edcd17d393b1b41fb31"
   integrity sha512-GpSwvyXOcOOlV70vbnzjj4fW5xW/FdUF6nQEt1ENy7m4ZCczi1+/buVUPAqmGfqznsORNFzUMjctTIp8a9tuCQ==
 
-"abdk-libraries-solidity@ssh://git@github.com:abdk-consulting/abdk-libraries-solidity.git#2.x":
-  version "0.0.0"
-  resolved "ssh://git@github.com:abdk-consulting/abdk-libraries-solidity.git#0445edf24456e8982d48fc45e6db898e9005a569"
-
 abort-controller@^3.0.0:
   version "3.0.0"
   resolved "https://registry.yarnpkg.com/abort-controller/-/abort-controller-3.0.0.tgz#eaf54d53b62bae4138e809ca225c8439a6efb392"

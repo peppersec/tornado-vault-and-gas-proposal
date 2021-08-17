@@ -11,22 +11,21 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // will be inherited by either a governance upgrade or a seperate contract
 
-contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
+abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
     using SafeMath for uint256;
     using SafeMath for uint128;
 
     enum LotteryState {
-        NotInitialized,
-        RegisteringVoters,
-        PreparingRewards,
-        RewardsDistributed,
-        PreparingNewRound
+	Paused,
+	Idle,
+	PreparingProposalForPayouts
     }
 
     enum ProposalStateAndValidity {
         InvalidProposalForLottery,
         ValidProposalForLottery,
-	ProposalReadyForPayouts
+	PreparingProposalForPayouts,
+        ProposalReadyForPayouts
     }
 
     struct UserVotingData {
@@ -42,49 +41,51 @@ contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
 	uint256 positionCounter;
     }
 
-//    Governance public TornadoGovernance;
-
     mapping(address => mapping(uint256 => UserVotingData))
         public idToUserVotingData;
     mapping(uint256 => ProposalData) public proposalWhitelist;
 
-    constructor() public LotteryRandomNumberConsumer() {}
+    LotteryState public lotteryState;
 
-    function whitelistProposal(uint256 proposalId, uint256 proposalRewards) external payable onlyOwner {
+    constructor() public LotteryRandomNumberConsumer() {
+	    lotteryState = LotteryState.Idle;
+    }
+
+    function whitelistProposal(uint256 proposalId, address torn, uint256 proposalRewards) external onlyOwner {
 	    require(proposalWhitelist[proposalId].proposalState == ProposalStateAndValidity.InvalidProposalForLottery, "already whitelisted");
 	    require(_checkIfProposalisPending(proposalId) || _checkIfProposalIsActive(proposalId), "not in valid state for whitelisting");
 	    proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity.ValidProposalForLottery;
 	    proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
 	    //rest are initialized automatically to 0
+	    require(IERC20(torn).transferFrom(owner(), address(this), proposalRewards), "TORN transfer failed");
     }
 
-    function prepareProposalForPayouts() external onlyOwner {
+    function prepareProposalForPayouts(uint256 proposalId) external onlyOwner {
 	    require(proposalWhitelist[proposalId].proposalState == ProposalStateAndValidity.ValidProposalForLottery, "can't prepare payout yet");
+	    require(_checkIfProposalIsFinished(proposalId), "only when proposal is defeated or executed! (randomness)");
+	    lotteryState = LotteryState.PreparingProposalForPayouts;
+	    proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity.PreparingProposalForPayouts;
 	    getRandomNumber();
+	    idForLatestRandomNumber = proposalId;
     }
 
-    function fulfillRandomness(bytes32 requestId, uint256 randomness)
-    internal
-    override
-    {
-	    randomResult = randomness;
-    }
-
-    function _rollAndTransferUserForProposal(address account, address torn, uint256 proposalId) internal {
+    function _rollAndTransferUserForProposal(uint256 proposalId, address torn, address account) internal {
 	require(!idToUserVotingData[account][proposalId].rolledAlready, "user rolled already");
 	require(proposalWhitelist[proposalId].proposalState == ProposalStateAndValidity.ProposalReadyForPayouts, "proposal not ready for payouts");
+	require(_checkIfProposalIsFinished(proposalId), "Proposal not executed/defeated");
 
 	uint256 roll = expand(idToUserVotingData[account][proposalId].position, proposalWhitelist[proposalId].totalTornRewards);
+	idToUserVotingData[account][proposalId].rolledAlready = true;
 	if(roll >= idToUserVotingData[account][proposalId].tornSquareRoot) {
-		IERC20(torn).transfer(account, 
+		require(IERC20(torn).transfer(account, 
 			(proposalWhitelist[proposalId].totalTornRewards).div(
 				proposalWhitelist[proposalId].positionCounter
 			)
-		);
+		), "Lottery reward transfer failed");
 	}
     }
 
-    function _registerAccountWithLottery(address account, uint256 proposalId)
+    function _registerAccountWithLottery(uint256 proposalId, address account)
         internal
     {
         require(
@@ -92,7 +93,7 @@ contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
             "Proposal has not finished yet"
         );
         require(
-            _checkIfAccountHasVoted(account, proposalId),
+            _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
         );
         require(
@@ -101,7 +102,16 @@ contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
         );
 	idToUserVotingData[account][proposalId].position = proposalWhitelist[proposalId].positionCounter;
 	proposalWhitelist[proposalId].positionCounter++;
-        _setTornSquareRootOfAccount(account, proposalId);
+        _setTornSquareRootOfAccount(proposalId, account);
+    }
+
+    function fulfillRandomness(bytes32 requestId, uint256 randomness)
+        private
+        override
+    {
+	randomResults[idForLatestRandomNumber] = randomness;
+	proposalWhitelist[idForLatestRandomNumber].proposalState = ProposalStateAndValidity.ProposalReadyForPayouts;
+	lotteryState = LotteryState.Idle;
     }
 
     function _calculateSquareRoot(uint256 number) private returns (uint256) {
@@ -110,7 +120,7 @@ contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
         return uint256(((squareRoot64).mul(1e18)) >> 64);
     }
 
-    function _setTornSquareRootOfAccount(address account, uint256 proposalId)
+    function _setTornSquareRootOfAccount(uint256 proposalId, address account)
         private
         returns (uint256)
     {
@@ -128,25 +138,21 @@ contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer, Ownable {
         private
         view
         returns (bool);
-//   {
-//       return ((Governance.state(proposalId) == Governance.ProposalState.Active);
-//   }
 
     function _checkIfProposalIsPending(uint256 proposalId)
         private
         view
         returns (bool);
-//   {
-//       return ((Governance.state(proposalId) == Governance.ProposalState.Pending);
-//   }
 
-    function _checkIfAccountHasVoted(address account, uint256 proposalId)
+    function _checkIfProposalIsFinished(uint256 proposalId)
         private
         view
         returns (bool);
-//   {
-//       return Governance.proposals[proposalId].receipts[account].hasVoted;
-//   }
+
+    function _checkIfAccountHasVoted(uint256 proposalId, address account)
+        private
+        view
+        returns (bool);
 
     function _checkIfProposalIsValid(uint256 proposalId)
         private
