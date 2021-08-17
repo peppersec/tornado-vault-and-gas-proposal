@@ -167,7 +167,11 @@ abstract contract TornadoLotteryFunctionality is
         lotteryState = LotteryState.Idle;
     }
 
-    function _calculateSquareRoot(uint256 number) private returns (uint256) {
+    function _calculateSquareRoot(uint256 number)
+        private
+        pure
+        returns (uint256)
+    {
         int128 number64 = int128((number << 64).div(1e18));
         int128 squareRoot64 = ABDKMath64x64.sqrt(number64);
         return (uint256(squareRoot64).mul(1e18) >> 64);
