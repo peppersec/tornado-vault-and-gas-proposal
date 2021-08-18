@@ -4,21 +4,16 @@ pragma solidity ^0.6.12;
 
 import {Governance} from "../tornado-governance/contracts/Governance.sol";
 import {LotteryRandomNumberConsumer} from "./LotteryRandomNumberConsumer.sol";
-import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 import {ABDKMath64x64} from "./libraries/ABDKMath64x64.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 // will be inherited by either a governance upgrade or a seperate contract
 
-abstract contract TornadoLotteryFunctionality is
-    LotteryRandomNumberConsumer,
-    Ownable
-{
+abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     using SafeMath for int128;
 
     enum LotteryState {
-        Paused,
         Idle,
         PreparingProposalForPayouts
     }
@@ -43,11 +38,17 @@ abstract contract TornadoLotteryFunctionality is
         uint256 positionCounter;
     }
 
+    address public constant TornadoMultisig =
+        address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
+
     mapping(address => mapping(uint256 => UserVotingData))
         public idToUserVotingData;
     mapping(uint256 => ProposalData) public proposalWhitelist;
 
     LotteryState public lotteryState;
+
+    event VoterRegistrationSuccessful(uint256 proposalId, address voter);
+    event VoterRegistrationFailed(uint256 proposalId, address voter);
 
     constructor() public LotteryRandomNumberConsumer() {
         lotteryState = LotteryState.Idle;
@@ -57,7 +58,8 @@ abstract contract TornadoLotteryFunctionality is
         uint256 proposalId,
         address torn,
         uint256 proposalRewards
-    ) external onlyOwner {
+    ) external {
+        require(msg.sender == TornadoMultisig, "only multisig");
         require(
             proposalWhitelist[proposalId].proposalState ==
                 ProposalStateAndValidity.InvalidProposalForLottery,
@@ -73,12 +75,17 @@ abstract contract TornadoLotteryFunctionality is
         proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
         //rest are initialized automatically to 0
         require(
-            IERC20(torn).transferFrom(owner(), address(this), proposalRewards),
+            IERC20(torn).transferFrom(
+                TornadoMultisig,
+                address(this),
+                proposalRewards
+            ),
             "TORN transfer failed"
         );
     }
 
-    function prepareProposalForPayouts(uint256 proposalId) external onlyOwner {
+    function prepareProposalForPayouts(uint256 proposalId) external {
+        require(msg.sender == TornadoMultisig, "only multisig");
         require(
             proposalWhitelist[proposalId].proposalState ==
                 ProposalStateAndValidity.ValidProposalForLottery,
@@ -133,11 +140,29 @@ abstract contract TornadoLotteryFunctionality is
         }
     }
 
-    function _registerAccountWithLottery(
+    function _errorHandledRegisterAccountWithLottery(
         uint256 proposalId,
         address account,
         uint256 accountVotes
     ) internal {
+        try
+            this._registerAccountWithLottery(proposalId, account, accountVotes)
+        {
+            emit VoterRegistrationSuccessful(proposalId, account);
+        } catch {
+            emit VoterRegistrationFailed(proposalId, account);
+        }
+    }
+
+    function _registerAccountWithLottery(
+        uint256 proposalId,
+        address account,
+        uint256 accountVotes
+    ) external {
+        require(
+            msg.sender == address(this),
+            "only contract may call this function"
+        );
         require(
             _checkIfProposalIsActive(proposalId),
             "Proposal has not finished yet"

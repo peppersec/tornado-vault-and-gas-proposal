@@ -40,7 +40,6 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
         virtual
         override;
 
-    // has to be modified for tornado governance
     function expand(
         uint256 resultId,
         uint256 entropy,

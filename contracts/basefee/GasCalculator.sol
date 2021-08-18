@@ -6,12 +6,12 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BASEFEE_PROXY} from "./BASEFEE_PROXY.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-contract TornadoGasCompensator is BASEFEE_PROXY {
+contract GasCalculator is BASEFEE_PROXY {
     using SafeMath for uint256;
 
     constructor(address _logic) public BASEFEE_PROXY(_logic) {}
 
-    function calcApproxEthUsedForTxNoPriorityFee(
+    function _calcApproxEthUsedForTxNoPriorityFee(
         address target,
         bytes memory payload
     ) internal returns (uint256) {

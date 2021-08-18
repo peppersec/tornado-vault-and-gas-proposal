@@ -3,6 +3,7 @@ require("@nomiclabs/hardhat-ethers");
 require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require('hardhat-spdx-license-identifier');
+require('hardhat-storage-layout');
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -16,6 +17,11 @@ module.exports = {
             enabled: true,
             runs: 2000,
           },
+          outputSelection: {
+            "*": {
+                "*": ["storageLayout"],
+            },
+          },
         },
       },
       {
@@ -24,6 +30,11 @@ module.exports = {
           optimizer: {
             enabled: true,
             runs: 2000,
+          },
+          outputSelection: {
+            "*": {
+                "*": ["storageLayout"],
+            },
           },
         },
       }

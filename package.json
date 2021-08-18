@@ -21,6 +21,7 @@
   "devDependencies": {
     "dotenv": "^10.0.0",
     "hardhat": "^2.4.3",
-    "hardhat-spdx-license-identifier": "^2.0.3"
+    "hardhat-spdx-license-identifier": "^2.0.3",
+    "hardhat-storage-layout": "^0.1.6"
   }
 }
