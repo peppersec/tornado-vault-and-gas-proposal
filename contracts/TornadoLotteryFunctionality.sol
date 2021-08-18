@@ -54,36 +54,6 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         lotteryState = LotteryState.Idle;
     }
 
-    function whitelistProposal(
-        uint256 proposalId,
-        address torn,
-        uint256 proposalRewards
-    ) external {
-        require(msg.sender == TornadoMultisig, "only multisig");
-        require(
-            proposalWhitelist[proposalId].proposalState ==
-                ProposalStateAndValidity.InvalidProposalForLottery,
-            "already whitelisted"
-        );
-        require(
-            _checkIfProposalIsPending(proposalId) ||
-                _checkIfProposalIsActive(proposalId),
-            "not in valid state for whitelisting"
-        );
-        proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
-            .ValidProposalForLottery;
-        proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
-        //rest are initialized automatically to 0
-        require(
-            IERC20(torn).transferFrom(
-                TornadoMultisig,
-                address(this),
-                proposalRewards
-            ),
-            "TORN transfer failed"
-        );
-    }
-
     function registerAccountWithLottery(
         uint256 proposalId,
         address account,
@@ -127,6 +97,36 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             .PreparingProposalForPayouts;
         getRandomNumber();
         idForLatestRandomNumber = proposalId;
+    }
+
+    function _whitelistProposal(
+        uint256 proposalId,
+        address torn,
+        uint256 proposalRewards
+    ) internal {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        require(
+            proposalWhitelist[proposalId].proposalState ==
+                ProposalStateAndValidity.InvalidProposalForLottery,
+            "already whitelisted"
+        );
+        require(
+            _checkIfProposalIsPending(proposalId) ||
+                _checkIfProposalIsActive(proposalId),
+            "not in valid state for whitelisting"
+        );
+        proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
+            .ValidProposalForLottery;
+        proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
+        //rest are initialized automatically to 0
+        require(
+            IERC20(torn).transferFrom(
+                TornadoMultisig,
+                address(this),
+                proposalRewards
+            ),
+            "TORN transfer failed"
+        );
     }
 
     function _rollAndTransferUserForProposal(

@@ -41,6 +41,21 @@ contract GovernanceLotteryUpgrade is
         );
     }
 
+    function whitelistProposal(
+        uint256 proposalId,
+        uint256 proposalRewards
+    ) external {
+	_whitelistProposal(proposalId, address(torn), proposalRewards);
+    }
+
+    function prepareProposalForPayouts(
+        uint256 proposalId,
+        uint256 tornPriceInEth
+    ) external {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        _prepareProposalForPayouts(proposalId);
+        _setTornPriceForProposal(proposalId, tornPriceInEth);
+    }
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
     function version() external pure virtual returns (string memory) {
@@ -54,15 +69,6 @@ contract GovernanceLotteryUpgrade is
     ) internal {
         _rollAndTransferUserForProposal(proposalId, torn, account);
         _compensateGas(proposalId, account);
-    }
-
-    function prepareProposalForPayouts(
-        uint256 proposalId,
-        uint256 tornPriceInEth
-    ) external {
-        require(msg.sender == TornadoMultisig, "only multisig");
-        _prepareProposalForPayouts(proposalId);
-        _setTornPriceForProposal(proposalId, tornPriceInEth);
     }
 
     function _compensateGas(uint256 proposalId, address account) internal {
