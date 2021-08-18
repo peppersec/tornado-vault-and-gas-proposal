@@ -6,6 +6,7 @@ pragma experimental ABIEncoderV2;
 import {Governance} from "./virtualGovernance/Governance.sol";
 import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
+import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract GovernanceLotteryUpgrade is
     Governance,
@@ -13,7 +14,8 @@ contract GovernanceLotteryUpgrade is
     GasCalculator
 {
     mapping(address => mapping(uint256 => uint256))
-        public gasCompensationsForProposal;
+        public gasCompensationsForProposalInEth;
+    mapping(uint256 => uint256) public tornPriceForProposal;
 
     constructor(address _logic)
         public
@@ -22,10 +24,50 @@ contract GovernanceLotteryUpgrade is
         GasCalculator(_logic)
     {}
 
+    function castVoteLogic(
+        address voter,
+        uint256 proposalId,
+        bool support
+    ) external {
+        require(
+            msg.sender == address(this),
+            "only governance may call this function"
+        );
+        super._castVote(voter, proposalId, support);
+        _errorHandledRegisterAccountWithLottery(
+            proposalId,
+            voter,
+            proposals[proposalId].receipts[voter].votes
+        );
+    }
+
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
     function version() external pure virtual returns (string memory) {
         return "2.lottery-upgrade";
+    }
+
+    function rollAndTransferUserForProposal(
+        uint256 proposalId,
+        address torn,
+        address account
+    ) internal {
+	_rollAndTransferUserForProposal(proposalId, torn, account);
+	_compensateGas(proposalId, account);
+    }
+
+    function prepareProposalForPayouts(uint256 proposalId, uint256 tornPriceInEth) external {
+	require(msg.sender == TornadoMultisig, "only multisig");
+	_prepareProposalForPayouts(proposalId);
+	_setTornPriceForProposal(proposalId, tornPriceInEth);
+    }
+
+    function _compensateGas(uint256 proposalId, address account) internal {
+	require(torn.transfer(account, SafeMath.div(gasCompensationsForProposalInEth[account][proposalId], tornPriceForProposal[proposalId])), "compensation transfer failed");    
+    }
+
+    function _setTornPriceForProposal(uint256 proposalId, uint256 tornPriceInEth) internal {
+	tornPriceForProposal[proposalId] = tornPriceInEth;
     }
 
     function _castVote(
@@ -36,13 +78,13 @@ contract GovernanceLotteryUpgrade is
         uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
             address(this),
             abi.encodeWithSignature(
-                "_castVoteLogic(address,uint256,bool)",
+                "castVoteLogic(address,uint256,bool)",
                 voter,
                 proposalId,
                 support
             )
         );
-        gasCompensationsForProposal[voter][proposalId] = toBeCompensated;
+        gasCompensationsForProposalInEth[voter][proposalId] = toBeCompensated;
     }
 
     function _checkIfProposalIsActive(uint256 proposalId)
@@ -80,18 +122,5 @@ contract GovernanceLotteryUpgrade is
         returns (bool)
     {
         return (proposals[proposalId].receipts[account]).hasVoted;
-    }
-
-    function _castVoteLogic(
-        address voter,
-        uint256 proposalId,
-        bool support
-    ) private {
-        super._castVote(voter, proposalId, support);
-        _errorHandledRegisterAccountWithLottery(
-            proposalId,
-            voter,
-            proposals[proposalId].receipts[voter].votes
-        );
     }
 }

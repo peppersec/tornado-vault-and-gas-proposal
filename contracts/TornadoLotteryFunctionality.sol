@@ -84,8 +84,35 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         );
     }
 
-    function prepareProposalForPayouts(uint256 proposalId) external {
-        require(msg.sender == TornadoMultisig, "only multisig");
+    function registerAccountWithLottery(
+        uint256 proposalId,
+        address account,
+        uint256 accountVotes
+    ) external {
+        require(
+            msg.sender == address(this),
+            "only governance may call this function"
+        );
+        require(
+            _checkIfProposalIsActive(proposalId),
+            "Proposal has not finished yet"
+        );
+        require(
+            _checkIfAccountHasVoted(proposalId, account),
+            "Account has not voted on this proposal"
+        );
+        require(
+            _checkIfProposalIsValid(proposalId),
+            "Proposal not whitelisted"
+        );
+        idToUserVotingData[account][proposalId].position = proposalWhitelist[
+            proposalId
+        ].positionCounter;
+        proposalWhitelist[proposalId].positionCounter++;
+        _setTornSquareRootOfAccount(proposalId, account, accountVotes);
+    }
+
+    function _prepareProposalForPayouts(uint256 proposalId) internal virtual {
         require(
             proposalWhitelist[proposalId].proposalState ==
                 ProposalStateAndValidity.ValidProposalForLottery,
@@ -146,40 +173,12 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         uint256 accountVotes
     ) internal {
         try
-            this._registerAccountWithLottery(proposalId, account, accountVotes)
+            this.registerAccountWithLottery(proposalId, account, accountVotes)
         {
             emit VoterRegistrationSuccessful(proposalId, account);
         } catch {
             emit VoterRegistrationFailed(proposalId, account);
         }
-    }
-
-    function _registerAccountWithLottery(
-        uint256 proposalId,
-        address account,
-        uint256 accountVotes
-    ) external {
-        require(
-            msg.sender == address(this),
-            "only contract may call this function"
-        );
-        require(
-            _checkIfProposalIsActive(proposalId),
-            "Proposal has not finished yet"
-        );
-        require(
-            _checkIfAccountHasVoted(proposalId, account),
-            "Account has not voted on this proposal"
-        );
-        require(
-            _checkIfProposalIsValid(proposalId),
-            "Proposal not whitelisted"
-        );
-        idToUserVotingData[account][proposalId].position = proposalWhitelist[
-            proposalId
-        ].positionCounter;
-        proposalWhitelist[proposalId].positionCounter++;
-        _setTornSquareRootOfAccount(proposalId, account, accountVotes);
     }
 
     function fulfillRandomness(bytes32 requestId, uint256 randomness)
