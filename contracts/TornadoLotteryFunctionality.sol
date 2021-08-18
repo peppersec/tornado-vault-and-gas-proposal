@@ -172,9 +172,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) internal {
-        try
-            this.registerAccountWithLottery(proposalId, account, accountVotes)
-        {
+        try this.registerAccountWithLottery(proposalId, account, accountVotes) {
             emit VoterRegistrationSuccessful(proposalId, account);
         } catch {
             emit VoterRegistrationFailed(proposalId, account);

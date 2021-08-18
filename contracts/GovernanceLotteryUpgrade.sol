@@ -52,22 +52,37 @@ contract GovernanceLotteryUpgrade is
         address torn,
         address account
     ) internal {
-	_rollAndTransferUserForProposal(proposalId, torn, account);
-	_compensateGas(proposalId, account);
+        _rollAndTransferUserForProposal(proposalId, torn, account);
+        _compensateGas(proposalId, account);
     }
 
-    function prepareProposalForPayouts(uint256 proposalId, uint256 tornPriceInEth) external {
-	require(msg.sender == TornadoMultisig, "only multisig");
-	_prepareProposalForPayouts(proposalId);
-	_setTornPriceForProposal(proposalId, tornPriceInEth);
+    function prepareProposalForPayouts(
+        uint256 proposalId,
+        uint256 tornPriceInEth
+    ) external {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        _prepareProposalForPayouts(proposalId);
+        _setTornPriceForProposal(proposalId, tornPriceInEth);
     }
 
     function _compensateGas(uint256 proposalId, address account) internal {
-	require(torn.transfer(account, SafeMath.div(gasCompensationsForProposalInEth[account][proposalId], tornPriceForProposal[proposalId])), "compensation transfer failed");    
+        require(
+            torn.transfer(
+                account,
+                SafeMath.div(
+                    gasCompensationsForProposalInEth[account][proposalId],
+                    tornPriceForProposal[proposalId]
+                )
+            ),
+            "compensation transfer failed"
+        );
     }
 
-    function _setTornPriceForProposal(uint256 proposalId, uint256 tornPriceInEth) internal {
-	tornPriceForProposal[proposalId] = tornPriceInEth;
+    function _setTornPriceForProposal(
+        uint256 proposalId,
+        uint256 tornPriceInEth
+    ) internal {
+        tornPriceForProposal[proposalId] = tornPriceInEth;
     }
 
     function _castVote(
