@@ -1,5 +1,6 @@
 const { expect } = require("chai");
-const { ethers } = require("hardhat");
+const { ethers, run } = require("hardhat");
+const hre = require("hardhat");
 const { BigNumber } = require("@ethersproject/bignumber")
 
 describe("Start of tests", () => {
@@ -9,20 +10,11 @@ describe("Start of tests", () => {
 	let BasefeeProxyFactory;
 	let BasefeeProxyContract;
 
-	let dore;
+	let firstWallet;
 
 	let signerArray = [];
 
 	let snapshotIdArray = [];
-
-	let mine = async () => {
-		await ethers.provider.send('evm_mine', []);
-	}
-
-	let minewait = async (time) => {
-		await ethers.provider.send('evm_increaseTime', [time]);
-		await ethers.provider.send('evm_mine', []);
-	}
 
 	let timestamp = async () => {
 		return (await ethers.provider.getBlock('latest')).timestamp;
@@ -38,21 +30,31 @@ describe("Start of tests", () => {
 		return ethers.utils.parseEther(`${x}`);
 	}
 
-	let rand = (l, u) => {
-		return testcases.randomNumber(testseed, l, u);
-	}
-
 	before(async () => {
 		signerArray = await ethers.getSigners();
-		dore = signerArray[0];
+		firstWallet = signerArray[0];
 
 		BasefeeLogicFactory = await ethers.getContractFactory("BASEFEE_LOGIC");
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
+		await BasefeeLogicContract.deployTransaction.wait(3);
+
+		clog("Contract should be at address: ", BasefeeLogicContract.address);
+
+		await run("verify:verify", {
+			address: BasefeeLogicContract.address
+		});
 
 		BasefeeProxyFactory = await ethers.getContractFactory("BASEFEE_PROXY");
 		BasefeeProxyContract = await BasefeeProxyFactory.deploy(BasefeeLogicContract.address);
+		await BasefeeProxyContract.deployTransaction.wait(3);
 
-		snapshotIdArray[0] = await sendr("evm_snapshot", []);
+		await run("verify:verify", {
+			address: BasefeeProxyContract.address,
+			contract: "contracts/basefee/BASEFEE_PROXY.sol:BASEFEE_PROXY",
+			constructorArguments: [
+				BasefeeLogicContract.address
+			]
+		});
 	});
 
 	describe("Test basefee contracts", () => {
@@ -61,11 +63,9 @@ describe("Start of tests", () => {
 		});
 
 		it("Logic should return the correct basefee", async () => {
-			const block = await ethers.provider.getBlock();
-			clog(block.baseFeePerGas);
-			const basefee_Provider = block.baseFeePerGas;
 			const basefee_Contract = await BasefeeLogicContract.RETURN_BASEFEE();
-			clog(basefee_Contract);
+			const block = await ethers.provider.getBlock();
+			const basefee_Provider = block.baseFeePerGas;
 			expect(basefee_Contract).to.equal(basefee_Provider);
 		});
 

@@ -71,6 +71,9 @@ module.exports = {
   spdxLicenseIdentifier: {
     overwrite: true,
     runOnCompile: true,
+  },
+  etherscan: {
+    apiKey: process.env.etherscanAPIKey
   }
 };
 
