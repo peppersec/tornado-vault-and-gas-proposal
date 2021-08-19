@@ -1,7 +1,5 @@
 const { expect } = require("chai");
 const { ethers, run } = require("hardhat");
-const hre = require("hardhat");
-const { BigNumber } = require("@ethersproject/bignumber")
 
 describe("Start of tests", () => {
 
@@ -13,8 +11,6 @@ describe("Start of tests", () => {
 	let firstWallet;
 
 	let signerArray = [];
-
-	let snapshotIdArray = [];
 
 	let timestamp = async () => {
 		return (await ethers.provider.getBlock('latest')).timestamp;

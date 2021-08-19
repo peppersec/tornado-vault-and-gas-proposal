@@ -66,6 +66,13 @@ module.exports = {
        ],
        timeout: 2147483647,
      },
+     rinkeby: {
+       url: process.env.rinkebyRPC,
+       accounts: [
+	process.env.rinkebyAccountPK,
+       ],
+       timeout: 2147483647,
+     },
    },
   mocha: { timeout: 9999999999 },
   spdxLicenseIdentifier: {
