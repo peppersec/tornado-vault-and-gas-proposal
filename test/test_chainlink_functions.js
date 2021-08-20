@@ -6,6 +6,7 @@ describe("Start of tests", () => {
 
 	let LRNCTestImplementationFactory;
 	let LRNCTestImplementationContract;
+	let ChainlinkToken;
 
 	let firstWallet;
 
@@ -25,9 +26,13 @@ describe("Start of tests", () => {
 		return ethers.utils.parseEther(`${x}`);
 	}
 
+	const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 	before(async () => {
 		signerArray = await ethers.getSigners();
 		firstWallet = signerArray[0];
+
+		ChainlinkToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", "0x01BE23585060835E02B77ef475b0Cc51aA1e0709")
 
 		LRNCTestImplementationFactory = await ethers.getContractFactory("LRNCTestImplementation");
 		LRNCTestImplementationContract = await LRNCTestImplementationFactory.deploy();
@@ -41,13 +46,25 @@ describe("Start of tests", () => {
 	});
 
 	describe("Test chainlink contracts", () => {
+
 		it("TestImplementation functions should work", async () => {
-			await LRNCTestImplementationContract.setIdForLatestRandomNumber(BigNumber.from(25));
-			const tx = await LRNCTestImplementationContract.callGetRandomNumber();
-			await tx.wait();
+			let overrides = {
+				gasPrice: BigNumber.from(15),
+				gasLimit: BigNumber.from(300000)
+			}
+			await expect(LRNCTestImplementationContract.setIdForLatestRandomNumber(BigNumber.from(25), overrides)).to.not.be.reverted;
 
-			const randomNumber = await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25));
+			const tTx = await ChainlinkToken.transfer(LRNCTestImplementationContract.address, pE(1));
 
+			await LRNCTestImplementationContract.callGetRandomNumber(overrides);
+
+			while((await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25), overrides)).eq(0)) {
+				delay(400);
+				clog("waiting...");
+			}
+
+			const randomNumber = await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25), overrides);
+			clog("here");
 			clog(randomNumber.toString());
 		});
 	});
