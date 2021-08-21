@@ -181,6 +181,7 @@ describe("Start of tests", () => {
 						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
 				);
 				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
+				GovernanceContract = await ethers.getContractAt("GovernanceLotteryUpgrade", GovernanceContract.address);
 			});
 			snapshotIdArray[1] = await sendr("evm_snapshot", []);
 		});
@@ -204,6 +205,8 @@ describe("Start of tests", () => {
 						.add(1)
 						.toNumber()
 				);
+				clog("Whale address: ", whale.address, " Balance locked: ", (await GovernanceContract.lockedBalance(whale.address)));
+				GovernanceContract = await GovernanceContract.connect(whale);
 				await expect(GovernanceContract.castVote(id, true)).to.not.be.reverted;
 				state = await GovernanceContract.state(id);
 				expect(state).to.be.equal(ProposalState.Active);
@@ -211,8 +214,9 @@ describe("Start of tests", () => {
 					(await GovernanceContract.VOTING_PERIOD())
 						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
 				);
-				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 
+				clog("here");
+				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 				clog((await GovernanceContract.VOTING_PERIOD()).toString());
 
 				await sendr("evm_revert", [snapshotIdArray[1]]);
@@ -225,7 +229,7 @@ describe("Start of tests", () => {
 					"0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b",
 					"0xF977814e90dA44bFA03b6295A0616a897441aceC",
 					"0xA2b2fBCaC668d86265C45f62dA80aAf3Fd1dEde3",
-					"0x285D153589c8fe208C9F00cc966D7A1d32A9A655",
+					"0x055AD5E56c11c0eF55818155c69ed9BA2f4b3e90",
 				]
 
 				let balanceObj = {};
@@ -246,6 +250,55 @@ describe("Start of tests", () => {
 				}
 
 				console.table(balanceObj);
+
+				for(i = 0; i < 4; i++) {
+					let torn = await TornToken.connect(whales[i]);
+					let balance = await torn.balanceOf(whales[i].address);
+					await expect(torn.approve(GovernanceContract.address, pE(800000))).to.not.be.reverted;
+					let gov = await GovernanceContract.connect(whales[i]);
+					await expect(gov.lockWithApproval(balance)).to.not.be.reverted;
+				}
+
+				snapshotIdArray[2] = await sendr("evm_snapshot", []);
+			});
+
+			it("Test multiple accounts proposal", async () => {
+				ProposalContract = await MockProposalFactory.deploy();
+				let response, id, state;
+				[response, id, state] = await propose([whales[(rand(1,9)%4)], ProposalContract, "mock1"]);
+
+				clog("hallo");
+
+				const { events } = await response.wait();
+				const args = events.find(({ event }) => event == "ProposalCreated").args
+				expect(args.id).to.be.equal(id);
+				expect(args.target).to.be.equal(ProposalContract.address);
+				expect(args.description).to.be.equal("mock1");
+				expect(state).to.be.equal(ProposalState.Pending);
+				clog("hallo");
+				await minewait(
+					(await GovernanceContract.VOTING_DELAY())
+						.add(1)
+						.toNumber()
+				);
+				clog("hallo");
+				for(i = 0; i < 4; i++) {
+					let gov = await GovernanceContract.connect(whales[i]);
+					await expect(gov.castVote(id, rand(1,9)%2)).to.not.be.reverted;
+				}
+				clog("hallo");
+				state = await GovernanceContract.state(id);
+				expect(state).to.be.equal(ProposalState.Active);
+				clog("hallo");
+				const user1data = await GovernanceContract.getUserVotingData(whales[1].address, id);
+				clog(user1data[0].toString(), " ", user1data[1].toString(), " ", user1data[2]);
+				clog("hallo");
+				await minewait(
+					(await GovernanceContract.VOTING_PERIOD())
+						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
+				);
+				clog("hallo");
+				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 			});
 		});
 	});

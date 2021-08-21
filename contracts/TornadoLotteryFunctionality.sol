@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
 import {Governance} from "../tornado-governance/contracts/Governance.sol";
 import {LotteryRandomNumberConsumer} from "./LotteryRandomNumberConsumer.sol";
@@ -69,20 +70,33 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) external {
+	console.log("Here! Register!");
         require(
             msg.sender == address(this),
             "only governance may call this function"
         );
+	console.log("Here!");
         require(_checkIfProposalIsActive(proposalId), "Proposal has finished");
+	console.log("Here!");
         require(
             _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
         );
+	console.log("Here!");
         idToUserVotingData[account][proposalId].position = proposalWhitelist[
             proposalId
         ].positionCounter;
         proposalWhitelist[proposalId].positionCounter++;
         _setTornSquareRootOfAccount(proposalId, account, accountVotes);
+	console.log("Here!");
+    }
+
+    function getUserVotingData(address account, uint256 proposalId) external view returns (UserVotingData memory) {
+	return idToUserVotingData[account][proposalId];
+    }
+
+    function getProposalData(uint256 proposalId) external view returns (ProposalData memory) {
+	return proposalWhitelist[proposalId];
     }
 
     function _prepareProposalForPayouts(uint256 proposalId) internal virtual {
@@ -173,9 +187,12 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) internal {
+	console.log("Here! Try/catch!");
         try this.registerAccountWithLottery(proposalId, account, accountVotes) {
+	    console.log("Here!");
             emit VoterRegistrationSuccessful(proposalId, account);
         } catch {
+	    console.log("Here!");
             emit VoterRegistrationFailed(proposalId, account);
         }
     }

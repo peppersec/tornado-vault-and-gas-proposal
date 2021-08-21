@@ -8,6 +8,8 @@ import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "hardhat/console.sol";
+
 contract GovernanceLotteryUpgrade is
     Governance,
     TornadoLotteryFunctionality,
@@ -29,16 +31,20 @@ contract GovernanceLotteryUpgrade is
         uint256 proposalId,
         bool support
     ) external {
+	console.log("Here! Function!");
         require(
             msg.sender == address(this),
             "only governance may call this function"
         );
+	console.log("Here!");
         super._castVote(voter, proposalId, support);
+	console.log("Here!");
         _errorHandledRegisterAccountWithLottery(
             proposalId,
             voter,
             proposals[proposalId].receipts[voter].votes
         );
+	console.log("Here!");
     }
 
     function castDelegatedVoteLogic(
