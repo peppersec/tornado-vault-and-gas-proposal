@@ -41,9 +41,29 @@ contract GovernanceLotteryUpgrade is
         );
     }
 
+    function castDelegatedVoteLogic(
+        address sender,
+        address[] memory from,
+        uint256 proposalId,
+        bool support
+    ) external {
+        require(msg.sender == address(this), "only gov can call this");
+        for (uint256 i = 0; i < from.length; i++) {
+            require(
+                delegatedTo[from[i]] == sender,
+                "Governance: not authorized"
+            );
+            this.castVoteLogic(from[i], proposalId, support);
+        }
+        if (lockedBalance[sender] > 0) {
+            _castVote(sender, proposalId, support);
+        }
+    }
+
     function whitelistProposal(uint256 proposalId, uint256 proposalRewards)
         external
     {
+        require(msg.sender == TornadoMultisig, "only multisig");
         _whitelistProposal(proposalId, address(torn), proposalRewards);
     }
 
@@ -61,16 +81,19 @@ contract GovernanceLotteryUpgrade is
         uint256 proposalId,
         bool support
     ) external virtual override {
-        for (uint256 i = 0; i < from.length; i++) {
-            require(
-                delegatedTo[from[i]] == msg.sender,
-                "Governance: not authorized"
-            );
-            this.castVoteLogic(from[i], proposalId, support);
-        }
-        if (lockedBalance[msg.sender] > 0) {
-            _castVote(msg.sender, proposalId, support);
-        }
+        uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
+            address(this),
+            abi.encodeWithSignature(
+                "castDelegatedVoteLogic(address,address[],uint256,bool)",
+                msg.sender,
+                from,
+                proposalId,
+                support
+            )
+        );
+        gasCompensationsForProposalInEth[msg.sender][
+            proposalId
+        ] = toBeCompensated;
     }
 
     /// @notice checker for success on deployment

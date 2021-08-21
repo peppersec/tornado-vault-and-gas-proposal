@@ -63,17 +63,10 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             msg.sender == address(this),
             "only governance may call this function"
         );
-        require(
-            _checkIfProposalIsActive(proposalId),
-            "Proposal has not finished yet"
-        );
+        require(_checkIfProposalIsActive(proposalId), "Proposal has finished");
         require(
             _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
-        );
-        require(
-            _checkIfProposalIsValid(proposalId),
-            "Proposal not whitelisted"
         );
         idToUserVotingData[account][proposalId].position = proposalWhitelist[
             proposalId
@@ -84,13 +77,16 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
 
     function _prepareProposalForPayouts(uint256 proposalId) internal virtual {
         require(
-            proposalWhitelist[proposalId].proposalState ==
-                ProposalStateAndValidity.ValidProposalForLottery,
-            "can't prepare payout yet"
+            _checkIfProposalIsValid(proposalId),
+            "can't prepare payout for invalid proposal"
         );
         require(
             _checkIfProposalIsFinished(proposalId),
             "only when proposal is defeated or executed! (randomness)"
+        );
+        require(
+            lotteryState == LotteryState.Idle,
+            "already preparing another proposal"
         );
         lotteryState = LotteryState.PreparingProposalForPayouts;
         proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
@@ -104,12 +100,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address torn,
         uint256 proposalRewards
     ) internal {
-        require(msg.sender == TornadoMultisig, "only multisig");
-        require(
-            proposalWhitelist[proposalId].proposalState ==
-                ProposalStateAndValidity.InvalidProposalForLottery,
-            "already whitelisted"
-        );
+        require(!(_checkIfProposalIsValid(proposalId)), "already whitelisted");
         require(
             _checkIfProposalIsPending(proposalId) ||
                 _checkIfProposalIsActive(proposalId),
@@ -139,8 +130,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             "user rolled already"
         );
         require(
-            proposalWhitelist[proposalId].proposalState ==
-                ProposalStateAndValidity.ProposalReadyForPayouts,
+            _checkIfProposalIsReadyForPayouts(proposalId),
             "proposal not ready for payouts"
         );
         require(
@@ -151,8 +141,9 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         uint256 roll = expand(
             proposalId,
             idToUserVotingData[account][proposalId].position,
-            proposalWhitelist[proposalId].totalTornRewards
+            proposalWhitelist[proposalId].sqrtTornSum
         );
+
         idToUserVotingData[account][proposalId].rolledAlready = true;
         if (roll >= idToUserVotingData[account][proposalId].tornSquareRoot) {
             require(
@@ -245,5 +236,14 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     {
         return (proposalWhitelist[proposalId].proposalState ==
             ProposalStateAndValidity.ValidProposalForLottery);
+    }
+
+    function _checkIfProposalIsReadyForPayouts(uint256 proposalId)
+        private
+        view
+        returns (bool)
+    {
+        return (proposalWhitelist[proposalId].proposalState ==
+            ProposalStateAndValidity.ProposalReadyForPayouts);
     }
 }

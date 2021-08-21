@@ -54,7 +54,7 @@ contract LotteryAndPeriodProposal {
     /// @param b second string to compare
     /// @return true if a == b, false otherwise
     function stringCompare(string memory a, string memory b)
-        internal
+        private
         pure
         returns (bool)
     {
