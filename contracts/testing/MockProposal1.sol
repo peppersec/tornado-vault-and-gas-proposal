@@ -2,6 +2,16 @@
 
 pragma solidity ^0.6.12;
 
+import "../virtualGovernance/Governance.sol";
+
 contract MockProposal1 {
-	function executeProposal() external {}
+    address public constant GovernanceAddress =
+        address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
+
+    function executeProposal() external {
+        Governance gov = Governance(GovernanceAddress);
+
+        gov.setVotingPeriod(27000);
+        require(gov.VOTING_PERIOD() == 27000, "Voting period change failed!");
+    }
 }

@@ -204,9 +204,7 @@ describe("Start of tests", () => {
 						.add(1)
 						.toNumber()
 				);
-				clog("here");
 				await expect(GovernanceContract.castVote(id, true)).to.not.be.reverted;
-				clog("here");
 				state = await GovernanceContract.state(id);
 				expect(state).to.be.equal(ProposalState.Active);
 				await minewait(
@@ -214,6 +212,8 @@ describe("Start of tests", () => {
 						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
 				);
 				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
+
+				clog((await GovernanceContract.VOTING_PERIOD()).toString());
 
 				await sendr("evm_revert", [snapshotIdArray[1]]);
 				snapshotIdArray[1] = await sendr("evm_snapshot", []);
