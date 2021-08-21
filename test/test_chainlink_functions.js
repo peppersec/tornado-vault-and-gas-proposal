@@ -31,41 +31,44 @@ describe("Start of tests", () => {
 	before(async () => {
 		signerArray = await ethers.getSigners();
 		firstWallet = signerArray[0];
+		clog(firstWallet.address);
 
-		ChainlinkToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", "0x01BE23585060835E02B77ef475b0Cc51aA1e0709")
+		ChainlinkToken = await ethers.getContractAt("@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol:LinkTokenInterface", "0x01BE23585060835E02B77ef475b0Cc51aA1e0709")
 
 		LRNCTestImplementationFactory = await ethers.getContractFactory("LRNCTestImplementation");
 		LRNCTestImplementationContract = await LRNCTestImplementationFactory.deploy();
-		await LRNCTestImplementationContract.deployTransaction.wait(3);
-
-		clog("Contract should be at address: ", LRNCTestImplementationContract.address);
-
-		await run("verify:verify", {
-			address: LRNCTestImplementationContract.address
-		});
+//	await LRNCTestImplementationContract.deployTransaction.wait(5);
+//
+//	clog("Contract should be at address: ", LRNCTestImplementationContract.address);
+//
+//	await run("verify:verify", {
+//		address: LRNCTestImplementationContract.address
+//	});
 	});
 
 	describe("Test chainlink contracts", () => {
 
 		it("TestImplementation functions should work", async () => {
-			let overrides = {
-				gasPrice: BigNumber.from(15),
-				gasLimit: BigNumber.from(300000)
-			}
-			await expect(LRNCTestImplementationContract.setIdForLatestRandomNumber(BigNumber.from(25), overrides)).to.not.be.reverted;
+			
+			await expect(LRNCTestImplementationContract.setIdForLatestRandomNumber(BigNumber.from(25))).to.not.be.reverted;
+			await expect(ChainlinkToken.approve(LRNCTestImplementationContract.address, pE(1000))).to.not.be.reverted;
 
-			const tTx = await ChainlinkToken.transfer(LRNCTestImplementationContract.address, pE(1));
+		});
 
-			await LRNCTestImplementationContract.callGetRandomNumber(overrides);
+		it("Should transfer chainlink", async () => {
 
-			while((await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25), overrides)).eq(0)) {
-				delay(400);
-				clog("waiting...");
-			}
+			await ChainlinkToken.transfer(LRNCTestImplementationContract.address, ethers.utils.parseEther("1"));
 
-			const randomNumber = await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25), overrides);
+			await delay(120000);
+
+			await expect(LRNCTestImplementationContract.callGetRandomNumber()).to.not.be.reverted;
 			clog("here");
-			clog(randomNumber.toString());
+
+			await delay(180000);
+			const randomResult = await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25));
+			clog("here: ", randomResult);
+
+
 		});
 	});
 

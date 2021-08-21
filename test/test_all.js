@@ -1,6 +1,6 @@
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
-const { BigNumber } = require("@ethersproject/bignumber")
+const { BigNumber } = require("@ethersproject/bignumber");
 
 describe("Start of tests", () => {
 
@@ -61,6 +61,8 @@ describe("Start of tests", () => {
 		return testcases.randomNumber(testseed, l, u);
 	}
 
+	const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+
 	const ProposalState = {
 		Pending: 0,
 		Active: 1,
@@ -79,7 +81,7 @@ describe("Start of tests", () => {
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
 
 		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal");
-		ProposalContract = await ProposalFactory.deploy(260000);
+		ProposalContract = await ProposalFactory.deploy(260000, BasefeeLogicContract.address);
 
 		LoopbackProxy = await ethers.getContractAt("./tornado-governance/contracts/LoopbackProxy.sol:LoopbackProxy", proxy_address);
 		GovernanceV1 = await ethers.getContractAt("./tornado-governance/contracts/Governance.sol:Governance", proxy_address);
@@ -105,4 +107,12 @@ describe("Start of tests", () => {
 
 		snapshotIdArray[0] = await sendr("evm_snapshot", []);
 	});
+
+	describe("Test complete functionality", () => {
+
+		it("Should test all functionality", () => {
+
+		});
+
+	})
 });
