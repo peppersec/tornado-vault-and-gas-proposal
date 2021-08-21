@@ -105,3 +105,5 @@ dist
 
 artifacts
 cache
+
+test/test_chainlink_functions_fork.js

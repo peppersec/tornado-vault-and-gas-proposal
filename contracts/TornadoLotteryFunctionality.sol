@@ -8,7 +8,7 @@ import {ABDKMath64x64} from "./libraries/ABDKMath64x64.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-// will be inherited by either a governance upgrade or a seperate contract
+import "hardhat/console.sol";
 
 abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     using SafeMath for int128;
@@ -50,7 +50,17 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     event VoterRegistrationSuccessful(uint256 proposalId, address voter);
     event VoterRegistrationFailed(uint256 proposalId, address voter);
 
-    constructor() public LotteryRandomNumberConsumer() {
+    constructor()
+        public
+        LotteryRandomNumberConsumer(
+            address(0xf0d54349aDdcf704F77AE15b96510dEA15cb7952),
+            address(0x514910771AF9Ca656af840dff83E8264EcF986CA),
+            bytes32(
+                0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445
+            ),
+            (2 * (10**18))
+        )
+    {
         lotteryState = LotteryState.Idle;
     }
 

@@ -18,7 +18,7 @@ contract GasCalculator is BASEFEE_PROXY {
         uint256 startGas = gasleft();
         (bool success, ) = target.call(payload);
         require(success, "Call did not succeed");
-        uint256 gasDiff = gasleft().sub(startGas);
+        uint256 gasDiff = startGas.sub(gasleft());
         gasDiff += 21000;
         return gasDiff.mul(RETURN_BASEFEE());
     }

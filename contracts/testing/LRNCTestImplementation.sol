@@ -5,7 +5,17 @@ pragma solidity ^0.6.12;
 import {LotteryRandomNumberConsumer} from "../LotteryRandomNumberConsumer.sol";
 
 contract LRNCTestImplementation is LotteryRandomNumberConsumer {
-    constructor() public LotteryRandomNumberConsumer() {}
+    constructor()
+        public
+        LotteryRandomNumberConsumer(
+            address(0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B),
+            address(0x01BE23585060835E02B77ef475b0Cc51aA1e0709),
+            bytes32(
+                0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311
+            ),
+            (10**17)
+        )
+    {}
 
     function callGetRandomNumber() external {
         getRandomNumber();

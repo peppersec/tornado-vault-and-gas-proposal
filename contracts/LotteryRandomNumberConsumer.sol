@@ -10,15 +10,14 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
     mapping(uint256 => uint256) internal randomResults;
     uint256 internal idForLatestRandomNumber;
 
-    constructor()
-        public
-        VRFConsumerBase(
-            0xb3dCcb4Cf7a26f6cf6B120Cf5A73875B7BBc655B,
-            0x01BE23585060835E02B77ef475b0Cc51aA1e0709
-        )
-    {
-        keyHash = 0x2ed0feb3e7fd2022120aa84fab1945545a9f2ffc9076fd6156fa96eaff4c1311;
-        fee = 1 * (10**17); // have to check on reducing gas fee but probably we will find a way to do a single request for the lottery payout
+    constructor(
+        address _vrfCoordinator,
+        address _link,
+        bytes32 _keyHash,
+        uint256 _fee
+    ) public VRFConsumerBase(_vrfCoordinator, _link) {
+        keyHash = _keyHash;
+        fee = _fee; // have to check on reducing gas fee but probably we will find a way to do a single request for the lottery payout
     }
 
     /**

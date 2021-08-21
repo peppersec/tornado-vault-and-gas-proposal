@@ -47,12 +47,9 @@ describe("Start of tests", () => {
 	});
 
 	describe("Test chainlink contracts", () => {
-
 		it("TestImplementation functions should work", async () => {
-			
 			await expect(LRNCTestImplementationContract.setIdForLatestRandomNumber(BigNumber.from(25))).to.not.be.reverted;
 			await expect(ChainlinkToken.approve(LRNCTestImplementationContract.address, pE(1000))).to.not.be.reverted;
-
 		});
 
 		it("Should transfer chainlink", async () => {
@@ -62,13 +59,10 @@ describe("Start of tests", () => {
 			await delay(120000);
 
 			await expect(LRNCTestImplementationContract.callGetRandomNumber()).to.not.be.reverted;
-			clog("here");
 
 			await delay(180000);
 			const randomResult = await LRNCTestImplementationContract.getRandomResult(BigNumber.from(25));
-			clog("here: ", randomResult);
-
-
+			clog("Random result received: ", randomResult.toString());
 		});
 	});
 
