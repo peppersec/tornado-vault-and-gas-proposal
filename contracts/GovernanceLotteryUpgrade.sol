@@ -41,11 +41,10 @@ contract GovernanceLotteryUpgrade is
         );
     }
 
-    function whitelistProposal(
-        uint256 proposalId,
-        uint256 proposalRewards
-    ) external {
-	_whitelistProposal(proposalId, address(torn), proposalRewards);
+    function whitelistProposal(uint256 proposalId, uint256 proposalRewards)
+        external
+    {
+        _whitelistProposal(proposalId, address(torn), proposalRewards);
     }
 
     function prepareProposalForPayouts(
@@ -56,6 +55,24 @@ contract GovernanceLotteryUpgrade is
         _prepareProposalForPayouts(proposalId);
         _setTornPriceForProposal(proposalId, tornPriceInEth);
     }
+
+    function castDelegatedVote(
+        address[] memory from,
+        uint256 proposalId,
+        bool support
+    ) external virtual override {
+        for (uint256 i = 0; i < from.length; i++) {
+            require(
+                delegatedTo[from[i]] == msg.sender,
+                "Governance: not authorized"
+            );
+            this.castVoteLogic(from[i], proposalId, support);
+        }
+        if (lockedBalance[msg.sender] > 0) {
+            _castVote(msg.sender, proposalId, support);
+        }
+    }
+
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
     function version() external pure virtual returns (string memory) {
@@ -66,7 +83,7 @@ contract GovernanceLotteryUpgrade is
         uint256 proposalId,
         address torn,
         address account
-    ) internal {
+    ) external {
         _rollAndTransferUserForProposal(proposalId, torn, account);
         _compensateGas(proposalId, account);
     }
