@@ -31,7 +31,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
             "Not enough LINK - fill contract"
         );
         lastRequestId = requestRandomness(keyHash, fee);
-	return lastRequestId;
+        return lastRequestId;
     }
 
     /**

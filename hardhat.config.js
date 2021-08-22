@@ -4,6 +4,7 @@ require("@nomiclabs/hardhat-etherscan");
 require("@nomiclabs/hardhat-waffle");
 require('hardhat-spdx-license-identifier');
 require('hardhat-storage-layout');
+require('hardhat-log-remover');
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */

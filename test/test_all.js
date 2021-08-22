@@ -45,6 +45,7 @@ describe("Start of tests", () => {
 
 	someHex[0] = BigNumber.from("0xfe16f5da5d734ce11cbb97f30ed3e5c3caccee9abd8d8e189adefcb4f9371d23");
 	someHex[1] = BigNumber.from("0x639F0F6557EB7A959E2382B9583601442514DF8A951F24CBCE889B1F73B76146");
+	someHex[2] = BigNumber.from("0x6F8ECDC9A8F8A8FCCA2054FE558D82164B0C0433A7F75E22B33165D919D2C4DC");
 	let randN = Math.floor(Math.random() * 1023);
 	let testseed = seedbase[randN].seed;
 
@@ -356,11 +357,11 @@ describe("Start of tests", () => {
 
 				const rId = await GovernanceContract.lastRequestId();
 
-				await expect(vrfGov.rawFulfillRandomness(rId, someHex[1])).to.not.be.reverted;
+				await expect(vrfGov.rawFulfillRandomness(rId, someHex[2])).to.not.be.reverted;
 				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(3);
 
 				clog(
-					`Total Torn sum: ${(await GovernanceContract.getProposalData(id))[1].toString()}`
+					`Total sqrt (chance) sum: ${(await GovernanceContract.getProposalData(id))[1].toString()}`
 				)
 
 				for (i = 0; i < 4; i++) {

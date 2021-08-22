@@ -9,8 +9,6 @@ import {ABDKMath64x64} from "./libraries/ABDKMath64x64.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import "hardhat/console.sol";
-
 abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     using SafeMath for int128;
 
@@ -70,41 +68,36 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) external {
-        console.log("Here! Register!");
         require(
             msg.sender == address(this),
             "only governance may call this function"
         );
-        console.log("Here!");
         require(_checkIfProposalIsActive(proposalId), "Proposal has finished");
-        console.log("Here!");
         require(
             _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
         );
-        console.log("Here!");
         idToUserVotingData[account][proposalId].position = proposalWhitelist[
             proposalId
         ].positionCounter;
         proposalWhitelist[proposalId].positionCounter++;
         _setTornSquareRootOfAccount(proposalId, account, accountVotes);
-        console.log("Here!");
     }
 
     function getUserVotingData(address account, uint256 proposalId)
         external
-	view
-	returns (UserVotingData memory) 
+        view
+        returns (UserVotingData memory)
     {
-	return idToUserVotingData[account][proposalId];
+        return idToUserVotingData[account][proposalId];
     }
 
     function getProposalData(uint256 proposalId)
         external
-	view
-	returns (ProposalData memory)
+        view
+        returns (ProposalData memory)
     {
-	return proposalWhitelist[proposalId];
+        return proposalWhitelist[proposalId];
     }
 
     function _prepareProposalForPayouts(uint256 proposalId) internal virtual {
@@ -195,12 +188,9 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) internal {
-        console.log("Here! Try/catch!");
         try this.registerAccountWithLottery(proposalId, account, accountVotes) {
-            console.log("Here!");
             emit VoterRegistrationSuccessful(proposalId, account);
         } catch {
-            console.log("Here!");
             emit VoterRegistrationFailed(proposalId, account);
         }
     }
