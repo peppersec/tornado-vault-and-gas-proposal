@@ -251,7 +251,7 @@ describe("Start of tests", () => {
 
 				console.table(balanceObj);
 
-				for(i = 0; i < 4; i++) {
+				for (i = 0; i < 4; i++) {
 					let torn = await TornToken.connect(whales[i]);
 					let balance = await torn.balanceOf(whales[i].address);
 					await expect(torn.approve(GovernanceContract.address, pE(800000))).to.not.be.reverted;
@@ -265,7 +265,7 @@ describe("Start of tests", () => {
 			it("Test multiple accounts proposal", async () => {
 				ProposalContract = await MockProposalFactory.deploy();
 				let response, id, state;
-				[response, id, state] = await propose([whales[(rand(1,9)%4)], ProposalContract, "mock1"]);
+				[response, id, state] = await propose([whales[(rand(1, 9) % 4)], ProposalContract, "mock1"]);
 
 				clog("hallo");
 
@@ -282,23 +282,29 @@ describe("Start of tests", () => {
 						.toNumber()
 				);
 				clog("hallo");
-				for(i = 0; i < 4; i++) {
+				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.castVote(id, rand(1,9)%2)).to.not.be.reverted;
+					await expect(gov.castVote(id, rand(1, 9) % 2)).to.not.be.reverted;
 				}
 				clog("hallo");
 				state = await GovernanceContract.state(id);
 				expect(state).to.be.equal(ProposalState.Active);
 				clog("hallo");
-				const user1data = await GovernanceContract.getUserVotingData(whales[1].address, id);
-				clog(user1data[0].toString(), " ", user1data[1].toString(), " ", user1data[2]);
-				clog("hallo");
+				//			const user1data = await GovernanceContract.getUserVotingData(whales[1].address, id);
+				//			clog(user1data[0].toString(), " ", user1data[1].toString(), " ", user1data[2]);
+				clog("hallo here");
 				await minewait(
 					(await GovernanceContract.VOTING_PERIOD())
-						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
+						.add(await GovernanceContract.EXECUTION_DELAY()).add(10000).toNumber()
 				);
 				clog("hallo");
-				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
+				if (
+					BigNumber.from(await GovernanceContract.state(id)).eq(ProposalState.Defeated)
+				) {
+					await expect(GovernanceContract.execute(id)).to.be.reverted;
+				} else {
+					await expect(GovernanceContract.execute(id)).to.not.be.reverted;
+				}
 			});
 		});
 	});
