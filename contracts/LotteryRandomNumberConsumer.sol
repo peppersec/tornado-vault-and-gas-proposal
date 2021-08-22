@@ -46,7 +46,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
         uint256 resultId,
         uint256 entropy,
         uint256 upperBound
-    ) internal view returns (uint256) {
+    ) public view returns (uint256) {
         return (uint256(
             keccak256(abi.encode(randomResults[resultId], entropy))
         ) % upperBound);

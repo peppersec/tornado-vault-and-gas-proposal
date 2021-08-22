@@ -359,10 +359,25 @@ describe("Start of tests", () => {
 				await expect(vrfGov.rawFulfillRandomness(rId, someHex[1])).to.not.be.reverted;
 				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(3);
 
+				clog(
+					`Total Torn sum: ${(await GovernanceContract.getProposalData(id))[1].toString()}`
+				)
+
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
 					await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
-					clog((await TornToken.balanceOf(whales[i].address)).toString());
+
+					console.log(
+						"--------------------------------------\n",
+						`Whale ${i} rolled: ${(await GovernanceContract.expand(
+							id,
+							(await GovernanceContract.getUserVotingData(whales[i].address, id))[1],
+							(await GovernanceContract.getProposalData(id))[1]
+						)).toString()} \n`,
+						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(),"\n",
+						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
+						"--------------------------------------\n",
+					)
 				}
 
 			});
