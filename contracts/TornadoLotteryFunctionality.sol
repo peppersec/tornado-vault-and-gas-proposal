@@ -70,32 +70,40 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) external {
-	console.log("Here! Register!");
+        console.log("Here! Register!");
         require(
             msg.sender == address(this),
             "only governance may call this function"
         );
-	console.log("Here!");
+        console.log("Here!");
         require(_checkIfProposalIsActive(proposalId), "Proposal has finished");
-	console.log("Here!");
+        console.log("Here!");
         require(
             _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
         );
-	console.log("Here!");
+        console.log("Here!");
         idToUserVotingData[account][proposalId].position = proposalWhitelist[
             proposalId
         ].positionCounter;
         proposalWhitelist[proposalId].positionCounter++;
         _setTornSquareRootOfAccount(proposalId, account, accountVotes);
-	console.log("Here!");
+        console.log("Here!");
     }
 
-    function getUserVotingData(address account, uint256 proposalId) external view returns (UserVotingData memory) {
+    function getUserVotingData(address account, uint256 proposalId)
+        external
+	view
+	returns (UserVotingData memory) 
+    {
 	return idToUserVotingData[account][proposalId];
     }
 
-    function getProposalData(uint256 proposalId) external view returns (ProposalData memory) {
+    function getProposalData(uint256 proposalId)
+        external
+	view
+	returns (ProposalData memory)
+    {
 	return proposalWhitelist[proposalId];
     }
 
@@ -169,7 +177,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         );
 
         idToUserVotingData[account][proposalId].rolledAlready = true;
-        if (roll >= idToUserVotingData[account][proposalId].tornSquareRoot) {
+        if (roll <= idToUserVotingData[account][proposalId].tornSquareRoot) {
             require(
                 IERC20(torn).transfer(
                     account,
@@ -187,12 +195,12 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address account,
         uint256 accountVotes
     ) internal {
-	console.log("Here! Try/catch!");
+        console.log("Here! Try/catch!");
         try this.registerAccountWithLottery(proposalId, account, accountVotes) {
-	    console.log("Here!");
+            console.log("Here!");
             emit VoterRegistrationSuccessful(proposalId, account);
         } catch {
-	    console.log("Here!");
+            console.log("Here!");
             emit VoterRegistrationFailed(proposalId, account);
         }
     }
@@ -214,7 +222,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     {
         int128 number64 = int128((number << 64).div(1e18));
         int128 squareRoot64 = ABDKMath64x64.sqrt(number64);
-        return (uint256(squareRoot64).mul(1e18) >> 64);
+        return (uint256(squareRoot64).mul(1e9) >> 64);
     }
 
     function _setTornSquareRootOfAccount(

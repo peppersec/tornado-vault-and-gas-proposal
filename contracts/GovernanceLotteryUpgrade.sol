@@ -31,20 +31,20 @@ contract GovernanceLotteryUpgrade is
         uint256 proposalId,
         bool support
     ) external {
-	console.log("Here! Function!");
+        console.log("Here! Function!");
         require(
             msg.sender == address(this),
             "only governance may call this function"
         );
-	console.log("Here!");
+        console.log("Here!");
         super._castVote(voter, proposalId, support);
-	console.log("Here!");
+        console.log("Here!");
         _errorHandledRegisterAccountWithLottery(
             proposalId,
             voter,
             proposals[proposalId].receipts[voter].votes
         );
-	console.log("Here!");
+        console.log("Here!");
     }
 
     function castDelegatedVoteLogic(
@@ -109,12 +109,10 @@ contract GovernanceLotteryUpgrade is
     }
 
     function rollAndTransferUserForProposal(
-        uint256 proposalId,
-        address torn,
-        address account
+        uint256 proposalId
     ) external {
-        _rollAndTransferUserForProposal(proposalId, torn, account);
-        _compensateGas(proposalId, account);
+        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
+        _compensateGas(proposalId, msg.sender);
     }
 
     function _compensateGas(uint256 proposalId, address account) internal {

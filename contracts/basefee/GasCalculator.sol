@@ -18,9 +18,9 @@ contract GasCalculator is BASEFEE_PROXY {
         bytes memory payload
     ) internal returns (uint256) {
         uint256 startGas = gasleft();
-	console.log("Here! %s", target);
+        console.log("Here! %s", target);
         (bool success, ) = target.call(payload);
-	console.log("Here!");
+        console.log("Here!");
         require(success, "Call did not succeed");
         uint256 gasDiff = startGas.sub(gasleft());
         gasDiff += 21000;
