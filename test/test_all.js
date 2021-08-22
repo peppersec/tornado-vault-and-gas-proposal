@@ -288,9 +288,9 @@ describe("Start of tests", () => {
 				);
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
-					let randN = rand(i*5, i*6);
-					randN = randN%2;
-					if(randN > 0) {
+					let randN = rand(i * 5, i * 6);
+					randN = randN % 2;
+					if (randN > 0) {
 						await expect(gov.castVote(id, true)).to.not.be.reverted;
 					} else {
 						await expect(gov.castVote(id, false)).to.not.be.reverted;
@@ -310,11 +310,11 @@ describe("Start of tests", () => {
 					)
 				}
 				console.log(
-						"--------------------------------------\n",
-						"Proposal data: \n",
-						"For votes: ", ((await GovernanceContract.proposals(id))[4]).toString(), "\n",
-						"Against votes: ", ((await GovernanceContract.proposals(id))[5]).toString(), "\n",
-						"--------------------------------------\n",
+					"--------------------------------------\n",
+					"Proposal data: \n",
+					"For votes: ", ((await GovernanceContract.proposals(id))[4]).toString(), "\n",
+					"Against votes: ", ((await GovernanceContract.proposals(id))[5]).toString(), "\n",
+					"--------------------------------------\n",
 				)
 
 				let multiGov = await GovernanceContract.connect(tornadoMultisig);
@@ -376,7 +376,7 @@ describe("Start of tests", () => {
 
 					console.log(
 						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(),"\n",
+						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
 						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
 						"--------------------------------------\n",
 					)
@@ -391,26 +391,33 @@ describe("Start of tests", () => {
 
 					console.log(
 						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(),"\n",
+						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
 						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
 						"--------------------------------------\n",
 					)
 				}
 
-				await minewait(996);
-				clog("Timestamp: ", await timestamp());
+				while (
+					(await GovernanceContract.getProposalData(id))[3].toNumber() > 0
+				) {
+					await minewait(996); // 4 txs increment by 1
+					clog("Timestamp: ", await timestamp());
 
-				for (i = 0; i < 4; i++) {
-					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
+					for (i = 0; i < 4; i++) {
+						let gov = await GovernanceContract.connect(whales[i]);
+						await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
 
-					console.log(
-						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(),"\n",
-						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
-						"--------------------------------------\n",
-					)
+						console.log(
+							"--------------------------------------\n",
+							"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
+							"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
+							"--------------------------------------\n",
+						)
+					}
+
 				}
+
+
 			});
 		});
 	});

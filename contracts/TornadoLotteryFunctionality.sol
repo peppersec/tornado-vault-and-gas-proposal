@@ -9,6 +9,8 @@ import {ABDKMath64x64} from "./libraries/ABDKMath64x64.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
+//import "hardhat/console.sol";
+
 abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     using SafeMath for int128;
 
@@ -203,11 +205,18 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
 
         uint256 roll = expand(
             proposalId,
-            uint256(keccak256(abi.encode(idToUserVotingData[account][proposalId].position, timeIndex))),
+            uint256(
+                keccak256(
+                    abi.encode(
+                        idToUserVotingData[account][proposalId].position,
+                        timeIndex
+                    )
+                )
+            ),
             proposalWhitelist[proposalId].sqrtTornSum
         );
-//	console.log("Whale %s rolled: %s", account, roll);
-//	console.log("Timestamp: %s", block.timestamp);
+        //	console.log("Whale %s rolled: %s", account, roll);
+        //	console.log("Timestamp: %s", block.timestamp);
 
         idToUserVotingData[account][proposalId].rolledAlready[timeIndex] = true;
 
