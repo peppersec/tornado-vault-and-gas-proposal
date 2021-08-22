@@ -8,6 +8,8 @@ import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
+import "hardhat/console.sol";
+
 contract GovernanceLotteryUpgrade is
     Governance,
     TornadoLotteryFunctionality,
@@ -115,10 +117,27 @@ contract GovernanceLotteryUpgrade is
         ] = toBeCompensated;
     }
 
-    function rollAndTransferUserForProposal(uint256 proposalId) external {
-        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
+    function claimRewards(uint256 proposalId) external {
+        uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
+            address(this),
+            abi.encodeWithSignature(
+                "rollAndTransferUserForProposal(uint256,address)",
+                proposalId,
+                msg.sender
+            )
+        );
+        gasCompensationsForProposalInEth[msg.sender][
+            proposalId
+        ] += toBeCompensated;
+    }
+
+    function rollAndTransferUserForProposal(uint256 proposalId, address sender)
+        external
+    {
+        require(msg.sender == address(this), "only gov can call this");
+        _rollAndTransferUserForProposal(proposalId, address(torn), sender);
         if (!gasCompensationsPaused) {
-            _compensateGas(proposalId, msg.sender);
+            _compensateGas(proposalId, sender);
         }
     }
 
@@ -129,10 +148,15 @@ contract GovernanceLotteryUpgrade is
     }
 
     function _compensateGas(uint256 proposalId, address account) internal {
+        console.log("here! spendable: %s", gasTorn);
         uint256 toCompensate = SafeMath.div(
-            gasCompensationsForProposalInEth[account][proposalId],
+            SafeMath.mul(
+                gasCompensationsForProposalInEth[account][proposalId],
+                1e18
+            ),
             tornPriceForProposal[proposalId]
         );
+        console.log("oComp: %s", toCompensate);
         toCompensate = (toCompensate < gasTorn) ? toCompensate : gasTorn;
 
         require(
@@ -140,6 +164,7 @@ contract GovernanceLotteryUpgrade is
             "compensation transfer failed"
         );
 
+        gasCompensationsForProposalInEth[account][proposalId] = 0;
         gasTorn -= toCompensate;
     }
 

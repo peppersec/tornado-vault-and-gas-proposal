@@ -4,9 +4,10 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const { propose } = require("../scripts/helper/propose_proposal.js");
 const testcases = require("@ethersproject/testcases");
 const seedbase = require("../resources/hdnode.json");
+const mockBasefeeArtifacts = require("../artifacts/contracts/testing/BASEFEE_LOGIC.sol/BASEFEE_LOGIC.json");
+const mockBasefeeBytecode = mockBasefeeArtifacts.bytecode;
 
 describe("Start of tests", () => {
-
 	let ProposalFactory;
 	let ProposalContract;
 	let LoopbackProxy;
@@ -94,7 +95,7 @@ describe("Start of tests", () => {
 		signerArray = await ethers.getSigners();
 		dore = signerArray[0];
 
-		BasefeeLogicFactory = await ethers.getContractFactory("BASEFEE_LOGIC");
+		BasefeeLogicFactory = await ethers.getContractFactory("contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC");
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
 
 		MockProposalFactory = await ethers.getContractFactory("MockProposal1");
@@ -127,9 +128,12 @@ describe("Start of tests", () => {
 
 	describe("Test complete functionality", () => {
 		describe("Imitation block", async () => {
-			it("Should successfully imitiate imitiate basefee logic", async () => {
-				await sendr("hardhat_impersonateAccount", [BasefeeLogicContract.address]);
-				basefeeLogicImp = await ethers.getSigner(BasefeeLogicContract.address);
+			it("Basefee logic should successfully return basefee", async () => {
+				const latestBlock = await ethers.provider.getBlock(
+					await ethers.provider.getBlockNumber()
+				);
+
+				expect(await BasefeeLogicContract.RETURN_BASEFEE()).to.equal(latestBlock.baseFeePerGas.toString());
 			});
 
 			it("Should successfully imitiate chainlink VRF coordinator on mainnet", async () => {
@@ -346,6 +350,8 @@ describe("Start of tests", () => {
 				}
 
 				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"))).to.not.be.reverted;
+				await expect(multiGov.setSpendableTornForGasCompensations(pE(500))).to.not.be.reverted;
+
 				const prepareTimestamp = await timestamp();
 				clog("Timestamp: ", prepareTimestamp);
 
@@ -370,7 +376,7 @@ describe("Start of tests", () => {
 
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
+					await expect(gov.claimRewards(id)).to.not.be.reverted;
 
 					console.log(
 						"--------------------------------------\n",
@@ -385,7 +391,7 @@ describe("Start of tests", () => {
 
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
+					await expect(gov.claimRewards(id)).to.not.be.reverted;
 
 					console.log(
 						"--------------------------------------\n",
@@ -403,7 +409,7 @@ describe("Start of tests", () => {
 
 					for (i = 0; i < 4; i++) {
 						let gov = await GovernanceContract.connect(whales[i]);
-						await expect(gov.rollAndTransferUserForProposal(id)).to.not.be.reverted;
+						await expect(gov.claimRewards(id)).to.not.be.reverted;
 
 						console.log(
 							"--------------------------------------\n",

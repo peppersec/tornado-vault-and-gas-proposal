@@ -47,6 +47,7 @@ module.exports = {
          url: process.env.mainnetRPC,
          blockNumber: 13042331,
        },
+       initialBaseFeePerGas: 5,
        loggingEnabled: false,
      },
      localhost: {
