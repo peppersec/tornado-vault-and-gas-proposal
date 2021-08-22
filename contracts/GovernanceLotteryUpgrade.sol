@@ -60,11 +60,18 @@ contract GovernanceLotteryUpgrade is
         }
     }
 
-    function whitelistProposal(uint256 proposalId, uint256 proposalRewards)
-        external
-    {
+    function whitelistProposal(
+        uint256 proposalId,
+        uint256 proposalRewards,
+        uint256 rewardRoundTimeDifference
+    ) external {
         require(msg.sender == TornadoMultisig, "only multisig");
-        _whitelistProposal(proposalId, address(torn), proposalRewards);
+        _whitelistProposal(
+            proposalId,
+            address(torn),
+            proposalRewards,
+            rewardRoundTimeDifference
+        );
     }
 
     function prepareProposalForPayouts(

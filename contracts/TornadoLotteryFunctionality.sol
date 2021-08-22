@@ -27,6 +27,12 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     struct UserVotingData {
         uint256 tornSquareRoot;
         uint256 position;
+        mapping(uint256 => bool) rolledAlready;
+    }
+
+    struct UserVotingReturnData {
+        uint256 tornSquareRoot;
+        uint256 position;
         bool rolledAlready;
     }
 
@@ -35,6 +41,8 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         uint256 sqrtTornSum;
         uint256 totalTornRewards;
         uint256 positionCounter;
+        uint256 rewardRoundTimeDifference;
+        uint256 startTime;
     }
 
     address public constant TornadoMultisig =
@@ -87,9 +95,24 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     function getUserVotingData(address account, uint256 proposalId)
         external
         view
-        returns (UserVotingData memory)
+        returns (UserVotingReturnData memory)
     {
-        return idToUserVotingData[account][proposalId];
+        bool rolledAlready = false;
+        if (_checkIfProposalIsReadyForPayouts(proposalId)) {
+            uint256 timeIndex = (block.timestamp)
+                .sub(proposalWhitelist[proposalId].startTime)
+                .div(proposalWhitelist[proposalId].rewardRoundTimeDifference);
+            rolledAlready = idToUserVotingData[account][proposalId]
+                .rolledAlready[timeIndex];
+        }
+
+        UserVotingReturnData memory toReturn = UserVotingReturnData(
+            idToUserVotingData[account][proposalId].tornSquareRoot,
+            idToUserVotingData[account][proposalId].position,
+            rolledAlready
+        );
+
+        return toReturn;
     }
 
     function getProposalData(uint256 proposalId)
@@ -116,6 +139,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         lotteryState = LotteryState.PreparingProposalForPayouts;
         proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
             .PreparingProposalForPayouts;
+        proposalWhitelist[proposalId].startTime = block.timestamp;
         getRandomNumber();
         idForLatestRandomNumber = proposalId;
     }
@@ -123,7 +147,8 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     function _whitelistProposal(
         uint256 proposalId,
         address torn,
-        uint256 proposalRewards
+        uint256 proposalRewards,
+        uint256 rewardRoundTimeDifference
     ) internal {
         require(!(_checkIfProposalIsValid(proposalId)), "already whitelisted");
         require(
@@ -134,6 +159,8 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
             .ValidProposalForLottery;
         proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
+        proposalWhitelist[proposalId]
+            .rewardRoundTimeDifference = rewardRoundTimeDifference;
         //rest are initialized automatically to 0
         require(
             IERC20(torn).transferFrom(
@@ -150,8 +177,15 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address torn,
         address account
     ) internal {
+        uint256 timeIndex = 0;
+        if (!(block.timestamp == proposalWhitelist[proposalId].startTime)) {
+            timeIndex = (block.timestamp)
+                .sub(proposalWhitelist[proposalId].startTime)
+                .div(proposalWhitelist[proposalId].rewardRoundTimeDifference);
+        }
+
         require(
-            !idToUserVotingData[account][proposalId].rolledAlready,
+            !idToUserVotingData[account][proposalId].rolledAlready[timeIndex],
             "user rolled already"
         );
         require(
@@ -162,24 +196,33 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             _checkIfProposalIsFinished(proposalId),
             "Proposal not executed/defeated"
         );
+        require(
+            !(proposalWhitelist[proposalId].positionCounter == 0),
+            "every reward disributed"
+        );
 
         uint256 roll = expand(
             proposalId,
-            idToUserVotingData[account][proposalId].position,
+            uint256(keccak256(abi.encode(idToUserVotingData[account][proposalId].position, timeIndex))),
             proposalWhitelist[proposalId].sqrtTornSum
         );
+//	console.log("Whale %s rolled: %s", account, roll);
+//	console.log("Timestamp: %s", block.timestamp);
 
-        idToUserVotingData[account][proposalId].rolledAlready = true;
+        idToUserVotingData[account][proposalId].rolledAlready[timeIndex] = true;
+
         if (roll <= idToUserVotingData[account][proposalId].tornSquareRoot) {
+            uint256 toTransfer = (
+                proposalWhitelist[proposalId].totalTornRewards
+            ).div(proposalWhitelist[proposalId].positionCounter);
             require(
-                IERC20(torn).transfer(
-                    account,
-                    (proposalWhitelist[proposalId].totalTornRewards).div(
-                        proposalWhitelist[proposalId].positionCounter
-                    )
-                ),
+                IERC20(torn).transfer(account, toTransfer),
                 "Lottery reward transfer failed"
             );
+            proposalWhitelist[proposalId].totalTornRewards = proposalWhitelist[
+                proposalId
+            ].totalTornRewards.sub(toTransfer);
+            proposalWhitelist[proposalId].positionCounter--;
         }
     }
 
