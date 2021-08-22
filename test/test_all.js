@@ -273,8 +273,6 @@ describe("Start of tests", () => {
 				let response, id, state;
 				[response, id, state] = await propose([whales[(rand(1, 9) % 4)], ProposalContract, "mock1"]);
 
-
-
 				const { events } = await response.wait();
 				const args = events.find(({ event }) => event == "ProposalCreated").args
 				expect(args.id).to.be.equal(id);

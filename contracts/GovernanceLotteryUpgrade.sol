@@ -16,6 +16,8 @@ contract GovernanceLotteryUpgrade is
     mapping(address => mapping(uint256 => uint256))
         public gasCompensationsForProposalInEth;
     mapping(uint256 => uint256) public tornPriceForProposal;
+    uint256 public gasTorn;
+    bool public gasCompensationsPaused;
 
     constructor(address _logic)
         public
@@ -83,6 +85,16 @@ contract GovernanceLotteryUpgrade is
         _setTornPriceForProposal(proposalId, tornPriceInEth);
     }
 
+    function setSpendableTornForGasCompensations(uint256 _gasTorn) external {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        gasTorn = _gasTorn;
+    }
+
+    function pauseOrUnpauseGasCompensations() external {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        gasCompensationsPaused = !gasCompensationsPaused;
+    }
+
     function castDelegatedVote(
         address[] memory from,
         uint256 proposalId,
@@ -103,28 +115,32 @@ contract GovernanceLotteryUpgrade is
         ] = toBeCompensated;
     }
 
+    function rollAndTransferUserForProposal(uint256 proposalId) external {
+        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
+        if (!gasCompensationsPaused) {
+            _compensateGas(proposalId, msg.sender);
+        }
+    }
+
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
     function version() external pure virtual returns (string memory) {
         return "2.lottery-upgrade";
     }
 
-    function rollAndTransferUserForProposal(uint256 proposalId) external {
-        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
-        _compensateGas(proposalId, msg.sender);
-    }
-
     function _compensateGas(uint256 proposalId, address account) internal {
+        uint256 toCompensate = SafeMath.div(
+            gasCompensationsForProposalInEth[account][proposalId],
+            tornPriceForProposal[proposalId]
+        );
+        toCompensate = (toCompensate < gasTorn) ? toCompensate : gasTorn;
+
         require(
-            torn.transfer(
-                account,
-                SafeMath.div(
-                    gasCompensationsForProposalInEth[account][proposalId],
-                    tornPriceForProposal[proposalId]
-                )
-            ),
+            torn.transfer(account, toCompensate),
             "compensation transfer failed"
         );
+
+        gasTorn -= toCompensate;
     }
 
     function _setTornPriceForProposal(
