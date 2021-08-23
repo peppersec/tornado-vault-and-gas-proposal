@@ -8,8 +8,6 @@ import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
-import "hardhat/console.sol";
-
 contract GovernanceLotteryUpgrade is
     Governance,
     TornadoLotteryFunctionality,
@@ -148,7 +146,6 @@ contract GovernanceLotteryUpgrade is
     }
 
     function _compensateGas(uint256 proposalId, address account) internal {
-        console.log("here! spendable: %s", gasTorn);
         uint256 toCompensate = SafeMath.div(
             SafeMath.mul(
                 gasCompensationsForProposalInEth[account][proposalId],
@@ -156,7 +153,6 @@ contract GovernanceLotteryUpgrade is
             ),
             tornPriceForProposal[proposalId]
         );
-        console.log("oComp: %s", toCompensate);
         toCompensate = (toCompensate < gasTorn) ? toCompensate : gasTorn;
 
         require(
