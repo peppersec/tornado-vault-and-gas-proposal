@@ -164,14 +164,6 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         proposalWhitelist[proposalId]
             .rewardRoundTimeDifference = rewardRoundTimeDifference;
         //rest are initialized automatically to 0
-        require(
-            IERC20(torn).transferFrom(
-                TornadoMultisig,
-                address(this),
-                proposalRewards
-            ),
-            "TORN transfer failed"
-        );
     }
 
     function _rollAndTransferUserForProposal(
@@ -195,12 +187,8 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             "proposal not ready for payouts"
         );
         require(
-            _checkIfProposalIsFinished(proposalId),
-            "Proposal not executed/defeated"
-        );
-        require(
             !(proposalWhitelist[proposalId].positionCounter == 0),
-            "every reward disributed"
+            "every reward distributed"
         );
 
         uint256 roll = expand(
