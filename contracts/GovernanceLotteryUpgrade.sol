@@ -7,17 +7,19 @@ import {Governance} from "./virtualGovernance/Governance.sol";
 import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
+import {UniswapV3TWAP} from "./univ3/UniswapV3TWAP.sol";
 
 contract GovernanceLotteryUpgrade is
     Governance,
     TornadoLotteryFunctionality,
     GasCalculator
 {
-    mapping(address => mapping(uint256 => uint256))
-        public gasCompensationsForProposalInEth;
-    mapping(uint256 => uint256) public tornPriceForProposal;
-    uint256 public gasTorn;
-    bool public gasCompensationsPaused;
+    using UniswapV3TWAP for address;
+
+    address public constant univ3TornPool =
+        address(0x753a90Ae2fA03d31487141bF54Bd853b27F7BCf5);
+
+    mapping(address => mapping(uint256 => bool)) public compensatedForVote;
 
     constructor(address _logic)
         public
@@ -26,117 +28,35 @@ contract GovernanceLotteryUpgrade is
         GasCalculator(_logic)
     {}
 
-    function castVoteLogic(
-        address voter,
-        uint256 proposalId,
-        bool support
-    ) external {
-        require(
-            msg.sender == address(this),
-            "only governance may call this function"
-        );
-        super._castVote(voter, proposalId, support);
-        _errorHandledRegisterAccountWithLottery(
-            proposalId,
-            voter,
-            proposals[proposalId].receipts[voter].votes
-        );
-    }
-
-    function castDelegatedVoteLogic(
-        address sender,
-        address[] memory from,
-        uint256 proposalId,
-        bool support
-    ) external {
-        require(msg.sender == address(this), "only gov can call this");
-        for (uint256 i = 0; i < from.length; i++) {
-            require(
-                delegatedTo[from[i]] == sender,
-                "Governance: not authorized"
-            );
-            this.castVoteLogic(from[i], proposalId, support);
-        }
-        if (lockedBalance[sender] > 0) {
-            _castVote(sender, proposalId, support);
-        }
-    }
-
-    function whitelistProposal(
-        uint256 proposalId,
-        uint256 proposalRewards,
-        uint256 rewardRoundTimeDifference
-    ) external {
-        require(msg.sender == TornadoMultisig, "only multisig");
-        _whitelistProposal(
-            proposalId,
-            address(torn),
-            proposalRewards,
-            rewardRoundTimeDifference
-        );
-    }
-
     function prepareProposalForPayouts(
         uint256 proposalId,
-        uint256 tornPriceInEth
-    ) external {
+        uint256 proposalRewards,
+        uint256 numberOfWinners
+    ) external virtual {
         require(msg.sender == TornadoMultisig, "only multisig");
-        _prepareProposalForPayouts(proposalId);
-        _setTornPriceForProposal(proposalId, tornPriceInEth);
+        _prepareProposalForPayouts(
+            proposalId,
+            proposalRewards,
+            numberOfWinners
+        );
     }
 
-    function setSpendableTornForGasCompensations(uint256 _gasTorn) external {
+    function setSpendableTornForGasCompensations(uint256 _gasTokenAmountInEther)
+        external
+        virtual
+        override
+    {
         require(msg.sender == TornadoMultisig, "only multisig");
-        gasTorn = _gasTorn;
+        gasTokenAmountInEther = _gasTokenAmountInEther;
     }
 
-    function pauseOrUnpauseGasCompensations() external {
+    function pauseOrUnpauseGasCompensations() external virtual override {
         require(msg.sender == TornadoMultisig, "only multisig");
         gasCompensationsPaused = !gasCompensationsPaused;
     }
 
-    function castDelegatedVote(
-        address[] memory from,
-        uint256 proposalId,
-        bool support
-    ) external virtual override {
-        uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
-            address(this),
-            abi.encodeWithSignature(
-                "castDelegatedVoteLogic(address,address[],uint256,bool)",
-                msg.sender,
-                from,
-                proposalId,
-                support
-            )
-        );
-        gasCompensationsForProposalInEth[msg.sender][
-            proposalId
-        ] = toBeCompensated;
-    }
-
-    function claimRewards(uint256 proposalId) external {
-        uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
-            address(this),
-            abi.encodeWithSignature(
-                "rollAndTransferUserForProposal(uint256,address)",
-                proposalId,
-                msg.sender
-            )
-        );
-        gasCompensationsForProposalInEth[msg.sender][
-            proposalId
-        ] += toBeCompensated;
-    }
-
-    function rollAndTransferUserForProposal(uint256 proposalId, address sender)
-        external
-    {
-        require(msg.sender == address(this), "only gov can call this");
-        _rollAndTransferUserForProposal(proposalId, address(torn), sender);
-        if (!gasCompensationsPaused) {
-            _compensateGas(proposalId, sender);
-        }
+    function claimRewards(uint256 proposalId) external virtual override {
+        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
     }
 
     /// @notice checker for success on deployment
@@ -145,47 +65,44 @@ contract GovernanceLotteryUpgrade is
         return "2.lottery-upgrade";
     }
 
-    function _compensateGas(uint256 proposalId, address account) internal {
-        uint256 toCompensate = SafeMath.div(
-            SafeMath.mul(
-                gasCompensationsForProposalInEth[account][proposalId],
-                1e18
-            ),
-            tornPriceForProposal[proposalId]
+    function _castVote(
+        address voter,
+        uint256 proposalId,
+        bool support
+    )
+        internal
+        virtual
+        override
+        gasCompensation(voter, compensatedForVote[voter][proposalId])
+    {
+        compensatedForVote[voter][proposalId] = true;
+        super._castVote(voter, proposalId, support);
+        _errorHandledRegisterAccountWithLottery(
+            proposalId,
+            voter,
+            proposals[proposalId].receipts[voter].votes
         );
-        toCompensate = (toCompensate < gasTorn) ? toCompensate : gasTorn;
+    }
+
+    function _compensateGasLogic(address account, uint256 amount)
+        internal
+        virtual
+        override
+    {
+        uint256 toCompensate = SafeMath.div(
+            SafeMath.mul(amount, 1e18),
+            univ3TornPool.getTWAPFromPool(10000)
+        );
+        toCompensate = (toCompensate < gasTokenAmountInEther)
+            ? toCompensate
+            : gasTokenAmountInEther;
 
         require(
             torn.transfer(account, toCompensate),
             "compensation transfer failed"
         );
 
-        gasCompensationsForProposalInEth[account][proposalId] = 0;
-        gasTorn -= toCompensate;
-    }
-
-    function _setTornPriceForProposal(
-        uint256 proposalId,
-        uint256 tornPriceInEth
-    ) internal {
-        tornPriceForProposal[proposalId] = tornPriceInEth;
-    }
-
-    function _castVote(
-        address voter,
-        uint256 proposalId,
-        bool support
-    ) internal virtual override(Governance) {
-        uint256 toBeCompensated = _calcApproxEthUsedForTxNoPriorityFee(
-            address(this),
-            abi.encodeWithSignature(
-                "castVoteLogic(address,uint256,bool)",
-                voter,
-                proposalId,
-                support
-            )
-        );
-        gasCompensationsForProposalInEth[voter][proposalId] = toBeCompensated;
+        gasTokenAmountInEther -= toCompensate;
     }
 
     function _checkIfProposalIsActive(uint256 proposalId)

@@ -9,8 +9,6 @@ import {ABDKMath64x64} from "./libraries/ABDKMath64x64.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-//
-
 abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     using SafeMath for int128;
 
@@ -20,31 +18,29 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     }
 
     enum ProposalStateAndValidity {
-        InvalidProposalForLottery,
-        ValidProposalForLottery,
         PreparingProposalForPayouts,
         ProposalReadyForPayouts
     }
 
     struct UserVotingData {
-        uint256 tornSquareRoot;
-        uint256 position;
-        mapping(uint256 => bool) rolledAlready;
-    }
-
-    struct UserVotingReturnData {
-        uint256 tornSquareRoot;
-        uint256 position;
         bool rolledAlready;
     }
 
     struct ProposalData {
         ProposalStateAndValidity proposalState;
         uint256 sqrtTornSum;
-        uint256 totalTornRewards;
-        uint256 positionCounter;
-        uint256 rewardRoundTimeDifference;
-        uint256 startTime;
+        uint256 transferPerWinner;
+        uint256[] winningNumbers;
+        uint256[] intervals;
+        mapping(address => uint256) accountPosition;
+    }
+
+    struct ReturnableProposalDataForAccount {
+        ProposalStateAndValidity proposalState;
+        uint256 sqrtTornSum;
+        uint256 transferPerWinner;
+        uint256 accountPosition;
+        uint256 accountSqrtTorn;
     }
 
     address public constant TornadoMultisig =
@@ -87,49 +83,58 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             _checkIfAccountHasVoted(proposalId, account),
             "Account has not voted on this proposal"
         );
-        idToUserVotingData[account][proposalId].position = proposalWhitelist[
-            proposalId
-        ].positionCounter;
-        proposalWhitelist[proposalId].positionCounter++;
         _setTornSquareRootOfAccount(proposalId, account, accountVotes);
     }
+
+    function claimRewards(uint256 proposalId) external virtual;
 
     function getUserVotingData(address account, uint256 proposalId)
         external
         view
-        returns (UserVotingReturnData memory)
+        returns (UserVotingData memory)
     {
-        bool rolledAlready = false;
-        if (_checkIfProposalIsReadyForPayouts(proposalId)) {
-            uint256 timeIndex = (block.timestamp)
-                .sub(proposalWhitelist[proposalId].startTime)
-                .div(proposalWhitelist[proposalId].rewardRoundTimeDifference);
-            rolledAlready = idToUserVotingData[account][proposalId]
-                .rolledAlready[timeIndex];
-        }
-
-        UserVotingReturnData memory toReturn = UserVotingReturnData(
-            idToUserVotingData[account][proposalId].tornSquareRoot,
-            idToUserVotingData[account][proposalId].position,
-            rolledAlready
-        );
-
-        return toReturn;
+        return idToUserVotingData[account][proposalId];
     }
 
-    function getProposalData(uint256 proposalId)
+    function getProposalDataForAccount(uint256 proposalId, address account)
         external
         view
-        returns (ProposalData memory)
+        returns (ReturnableProposalDataForAccount memory)
     {
-        return proposalWhitelist[proposalId];
+        uint256 accountIndex = proposalWhitelist[proposalId].accountPosition[
+            account
+        ];
+        return
+            ReturnableProposalDataForAccount(
+                proposalWhitelist[proposalId].proposalState,
+                proposalWhitelist[proposalId].sqrtTornSum,
+                proposalWhitelist[proposalId].transferPerWinner,
+                accountIndex,
+                proposalWhitelist[proposalId].intervals[accountIndex]
+            );
     }
 
-    function _prepareProposalForPayouts(uint256 proposalId) internal virtual {
-        require(
-            _checkIfProposalIsValid(proposalId),
-            "can't prepare payout for invalid proposal"
-        );
+    function getWinningNumbersForProposal(uint256 proposalId)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return proposalWhitelist[proposalId].winningNumbers;
+    }
+
+    function getIntervalsForProposal(uint256 proposalId)
+        external
+        view
+        returns (uint256[] memory)
+    {
+        return proposalWhitelist[proposalId].intervals;
+    }
+
+    function _prepareProposalForPayouts(
+        uint256 proposalId,
+        uint256 proposalRewards,
+        uint256 numberOfWinners
+    ) internal virtual {
         require(
             _checkIfProposalIsFinished(proposalId),
             "only when proposal is defeated or executed! (randomness)"
@@ -138,32 +143,20 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             lotteryState == LotteryState.Idle,
             "already preparing another proposal"
         );
+
         lotteryState = LotteryState.PreparingProposalForPayouts;
         proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
             .PreparingProposalForPayouts;
-        proposalWhitelist[proposalId].startTime = block.timestamp;
-        getRandomNumber();
-        idForLatestRandomNumber = proposalId;
-    }
-
-    function _whitelistProposal(
-        uint256 proposalId,
-        address torn,
-        uint256 proposalRewards,
-        uint256 rewardRoundTimeDifference
-    ) internal {
-        require(!(_checkIfProposalIsValid(proposalId)), "already whitelisted");
-        require(
-            _checkIfProposalIsPending(proposalId) ||
-                _checkIfProposalIsActive(proposalId),
-            "not in valid state for whitelisting"
+        proposalWhitelist[proposalId].transferPerWinner = proposalRewards.div(
+            numberOfWinners
         );
-        proposalWhitelist[proposalId].proposalState = ProposalStateAndValidity
-            .ValidProposalForLottery;
-        proposalWhitelist[proposalId].totalTornRewards = proposalRewards;
-        proposalWhitelist[proposalId]
-            .rewardRoundTimeDifference = rewardRoundTimeDifference;
-        //rest are initialized automatically to 0
+
+        for (uint256 i = 0; i < numberOfWinners; i++) {
+            proposalWhitelist[proposalId].winningNumbers.push(0); // for length
+        }
+
+        idForLatestRandomNumber = proposalId;
+        getRandomNumber();
     }
 
     function _rollAndTransferUserForProposal(
@@ -171,53 +164,25 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         address torn,
         address account
     ) internal {
-        uint256 timeIndex = 0;
-        if (!(block.timestamp == proposalWhitelist[proposalId].startTime)) {
-            timeIndex = (block.timestamp)
-                .sub(proposalWhitelist[proposalId].startTime)
-                .div(proposalWhitelist[proposalId].rewardRoundTimeDifference);
-        }
-
         require(
-            !idToUserVotingData[account][proposalId].rolledAlready[timeIndex],
+            !idToUserVotingData[account][proposalId].rolledAlready,
             "user rolled already"
         );
         require(
             _checkIfProposalIsReadyForPayouts(proposalId),
             "proposal not ready for payouts"
         );
-        require(
-            !(proposalWhitelist[proposalId].positionCounter == 0),
-            "every reward distributed"
-        );
 
-        uint256 roll = expand(
-            proposalId,
-            uint256(
-                keccak256(
-                    abi.encode(
-                        idToUserVotingData[account][proposalId].position,
-                        timeIndex
-                    )
-                )
-            ),
-            proposalWhitelist[proposalId].sqrtTornSum
-        );
+        idToUserVotingData[account][proposalId].rolledAlready = true;
 
-        idToUserVotingData[account][proposalId].rolledAlready[timeIndex] = true;
-
-        if (roll <= idToUserVotingData[account][proposalId].tornSquareRoot) {
-            uint256 toTransfer = (
-                proposalWhitelist[proposalId].totalTornRewards
-            ).div(proposalWhitelist[proposalId].positionCounter);
+        if (_checkIfAccountHasWon(proposalId, account)) {
             require(
-                IERC20(torn).transfer(account, toTransfer),
+                IERC20(torn).transfer(
+                    account,
+                    proposalWhitelist[proposalId].transferPerWinner
+                ),
                 "Lottery reward transfer failed"
             );
-            proposalWhitelist[proposalId].totalTornRewards = proposalWhitelist[
-                proposalId
-            ].totalTornRewards.sub(toTransfer);
-            proposalWhitelist[proposalId].positionCounter--;
         }
     }
 
@@ -241,6 +206,20 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         proposalWhitelist[idForLatestRandomNumber]
             .proposalState = ProposalStateAndValidity.ProposalReadyForPayouts;
         lotteryState = LotteryState.Idle;
+        for (
+            uint256 i = 0;
+            i <
+            proposalWhitelist[idForLatestRandomNumber].winningNumbers.length;
+            i++
+        ) {
+            proposalWhitelist[idForLatestRandomNumber].winningNumbers[
+                i
+            ] = expand(
+                randomness,
+                i + 1,
+                proposalWhitelist[idForLatestRandomNumber].sqrtTornSum
+            );
+        }
     }
 
     function _calculateSquareRoot(uint256 number)
@@ -253,18 +232,78 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         return (uint256(squareRoot64).mul(1e9) >> 64);
     }
 
+    function _checkIfAccountHasWon(uint256 proposalId, address account)
+        public
+        view
+        returns (bool)
+    {
+        uint256 cumulativeSum = 0;
+        uint256 accountIndex = proposalWhitelist[proposalId].accountPosition[
+            account
+        ];
+        for (uint256 i = 0; i < accountIndex; i++) {
+            cumulativeSum += proposalWhitelist[proposalId].intervals[i];
+        }
+
+        for (
+            uint256 i = 0;
+            i < proposalWhitelist[proposalId].winningNumbers.length;
+            i++
+        ) {
+            if (
+                _checkRoll(
+                    cumulativeSum,
+                    cumulativeSum.add(
+                        proposalWhitelist[proposalId].intervals[accountIndex]
+                    ),
+                    proposalWhitelist[proposalId].winningNumbers[i]
+                )
+            ) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function _checkRoll(
+        uint256 cumulativeSum,
+        uint256 intervalEnd,
+        uint256 roll
+    ) private pure returns (bool) {
+        if (cumulativeSum <= roll) {
+            if (roll < intervalEnd) {
+                return true;
+            }
+        }
+        return false;
+    }
+
     function _setTornSquareRootOfAccount(
         uint256 proposalId,
         address account,
         uint256 accountVotes
     ) private returns (uint256) {
         uint256 newSquareRoot = _calculateSquareRoot(accountVotes);
-        uint256 oldSqrtTornSum = proposalWhitelist[proposalId].sqrtTornSum;
-        proposalWhitelist[proposalId].sqrtTornSum = oldSqrtTornSum.sub(
-            idToUserVotingData[account][proposalId].tornSquareRoot
-        );
-        idToUserVotingData[account][proposalId].tornSquareRoot = newSquareRoot;
-        proposalWhitelist[proposalId].sqrtTornSum += newSquareRoot;
+        uint256 oldSum = proposalWhitelist[proposalId].sqrtTornSum;
+        uint256 accountIndex = proposalWhitelist[proposalId].accountPosition[
+            account
+        ];
+
+        proposalWhitelist[proposalId].sqrtTornSum = oldSum
+            .sub(proposalWhitelist[proposalId].intervals[accountIndex])
+            .add(newSquareRoot);
+
+        if (proposalWhitelist[proposalId].accountPosition[account] > 0) {
+            proposalWhitelist[proposalId].intervals.push(newSquareRoot);
+            proposalWhitelist[proposalId].accountPosition[
+                account
+            ] = proposalWhitelist[proposalId].intervals.length;
+        } else {
+            proposalWhitelist[proposalId].intervals[
+                accountIndex
+            ] = newSquareRoot;
+        }
+
         return newSquareRoot;
     }
 
@@ -291,15 +330,6 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         view
         virtual
         returns (bool);
-
-    function _checkIfProposalIsValid(uint256 proposalId)
-        private
-        view
-        returns (bool)
-    {
-        return (proposalWhitelist[proposalId].proposalState ==
-            ProposalStateAndValidity.ValidProposalForLottery);
-    }
 
     function _checkIfProposalIsReadyForPayouts(uint256 proposalId)
         private

@@ -48,7 +48,7 @@ module.exports = {
          blockNumber: 13042331,
        },
        initialBaseFeePerGas: 5,
-       loggingEnabled: false,
+       loggingEnabled: true,
      },
      localhost: {
        url: "http://localhost:8545",
