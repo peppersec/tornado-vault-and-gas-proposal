@@ -10,30 +10,33 @@ abstract contract GasCalculator is BASEFEE_PROXY {
     using SafeMath for uint256;
 
     bool public gasCompensationsPaused;
-    uint256 public gasTokenAmountInEther;
+    uint256 public gasCompensationsLimit;
 
     constructor(address _logic) public BASEFEE_PROXY(_logic) {}
 
-    modifier gasCompensation(address account, bool eligible) {
+    modifier gasCompensation(address account, bool eligible, uint256 extra) {
         if (!gasCompensationsPaused && eligible) {
             uint256 startGas = gasleft();
             _;
             uint256 gasDiff = startGas.sub(gasleft());
-            gasDiff += 21000;
-            uint256 result = gasDiff.mul(RETURN_BASEFEE());
-            _compensateGasLogic(account, result);
+            uint256 toCompensate = gasDiff.mul(RETURN_BASEFEE());
+	    toCompensate += extra;
+
+            toCompensate = (toCompensate < gasCompensationsLimit)
+                ? toCompensate
+                : gasCompensationsLimit;
+
+	    require(payable(account).send(toCompensate), "gas compensation failed");
+         
+            gasCompensationsLimit -= toCompensate;
         } else {
             _;
         }
     }
 
-    function setSpendableTornForGasCompensations(uint256 _gasTokenAmountInEther)
+    function setGasCompensationsLimit(uint256 _gasCompensationsLimit)
         external
         virtual;
 
     function pauseOrUnpauseGasCompensations() external virtual;
-
-    function _compensateGasLogic(address account, uint256 amount)
-        internal
-        virtual;
 }

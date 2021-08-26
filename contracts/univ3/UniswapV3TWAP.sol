@@ -49,7 +49,7 @@ library UniswapV3TWAP {
 
         uint256 sqrtPriceX96256 = uint256(sqrtPriceX96);
 
-        return
-            FullMath.mulDiv(sqrtPriceX96256, sqrtPriceX96256, FixedPoint96.Q96);
+       return
+           FullMath.mulDiv(sqrtPriceX96256, sqrtPriceX96256, FixedPoint96.Q96);
     }
 }

@@ -5,11 +5,10 @@ pragma solidity ^0.6.12;
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
-    bytes32 public lastRequestId;
+
+    uint256 internal idForLatestRandomNumber;
     bytes32 internal keyHash;
     uint256 internal fee;
-    mapping(uint256 => uint256) internal randomResults;
-    uint256 internal idForLatestRandomNumber;
 
     constructor(
         address _vrfCoordinator,
@@ -29,8 +28,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
             LINK.balanceOf(address(this)) >= fee,
             "Not enough LINK - fill contract"
         );
-        lastRequestId = requestRandomness(keyHash, fee);
-        return lastRequestId;
+        requestRandomness(keyHash, fee);
     }
 
     /**
@@ -42,12 +40,12 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
         override;
 
     function expand(
-        uint256 resultId,
+        uint256 randomNumber,
         uint256 entropy,
         uint256 upperBound
-    ) public view returns (uint256) {
+    ) public pure returns (uint256) {
         return (uint256(
-            keccak256(abi.encode(randomResults[resultId], entropy))
+            keccak256(abi.encode(randomNumber, entropy))
         ) % upperBound);
     }
 }

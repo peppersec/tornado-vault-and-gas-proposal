@@ -285,6 +285,7 @@ describe("Start of tests", () => {
 
 			it("Test multiple accounts proposal", async () => {
 				ProposalContract = await MockProposalFactory.deploy();
+				clog("Balance of governance contract: ", (await TornToken.balanceOf(GovernanceContract.address)).toString());
 				////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
 				let response, id, state;
 				[response, id, state] = await propose([whales[(rand(1, 9) % 4)], ProposalContract, "mock1"]);
@@ -302,6 +303,12 @@ describe("Start of tests", () => {
 						.add(1)
 						.toNumber()
 				);
+
+
+				/////////////////// PREPARE MULTISIG AND COMPENSATIONS
+				let multiGov = await GovernanceContract.connect(tornadoMultisig);
+				let multiTorn = await TornToken.connect(tornadoMultisig);
+				await expect(multiGov.gasCompensation(pE(500))).to.not.be.reverted;
 
 				///////////////////////////// VOTE ////////////////////////////
 				for (i = 0; i < 4; i++) {
@@ -341,10 +348,7 @@ describe("Start of tests", () => {
 					"--------------------------------------\n",
 				)
 
-				/////////////////////////////// CONNECT TO MULTISIG AND FAIL PREPARE ///////////////////////////////
-				let multiGov = await GovernanceContract.connect(tornadoMultisig);
-				let multiTorn = await TornToken.connect(tornadoMultisig);
-
+				/////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
 				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(0);
 
 				const tx1 = {
@@ -375,7 +379,7 @@ describe("Start of tests", () => {
 
 				///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
 				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"), BigNumber.from(4))).to.not.be.reverted;
-				await expect(multiGov.setSpendableTornForGasCompensations(pE(500))).to.not.be.reverted;
+
 
 				clog("Transfer per winner: ", (await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[2].toString());
 

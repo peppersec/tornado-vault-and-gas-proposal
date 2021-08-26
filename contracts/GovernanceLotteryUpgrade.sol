@@ -4,29 +4,32 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import {Governance} from "./virtualGovernance/Governance.sol";
-import {TornadoLotteryFunctionality} from "./TornadoLotteryFunctionality.sol";
 import {GasCalculator} from "./basefee/GasCalculator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {UniswapV3TWAP} from "./univ3/UniswapV3TWAP.sol";
+import {TornadoLottery} from "./TornadoLottery";
+
+import "hardhat/console.sol";
 
 contract GovernanceLotteryUpgrade is
     Governance,
-    TornadoLotteryFunctionality,
     GasCalculator
 {
-    using UniswapV3TWAP for address;
-
-    address public constant univ3TornPool =
-        address(0x753a90Ae2fA03d31487141bF54Bd853b27F7BCf5);
-
     mapping(address => mapping(uint256 => bool)) public compensatedForVote;
+    TornadoLottery public GovernanceLottery;
 
     constructor(address _logic)
         public
         Governance()
-        TornadoLotteryFunctionality()
         GasCalculator(_logic)
     {}
+
+    function deployLottery() external returns (bool) {
+        require(address(GovernanceLottery) == address(0), "vault already deployed");
+	GovernanceLottery = new TornadoLottery();
+        assert(address(GovernanceLottery) != address(0));
+	torn.approve(address(GovernanceLottery), type(uint256).max);
+	return true;
+    }
 
     function prepareProposalForPayouts(
         uint256 proposalId,
@@ -34,20 +37,19 @@ contract GovernanceLotteryUpgrade is
         uint256 numberOfWinners
     ) external virtual {
         require(msg.sender == TornadoMultisig, "only multisig");
-        _prepareProposalForPayouts(
+        GovernanceLottery._prepareProposalForPayouts(
             proposalId,
-            proposalRewards,
-            numberOfWinners
+            proposalRewards
         );
     }
 
-    function setSpendableTornForGasCompensations(uint256 _gasTokenAmountInEther)
+    function setGasCompensationsLimit(uint256 _gasCompensationsLimit)
         external
         virtual
         override
     {
         require(msg.sender == TornadoMultisig, "only multisig");
-        gasTokenAmountInEther = _gasTokenAmountInEther;
+        gasCompensationsLimit = _gasCompensationsLimit;
     }
 
     function pauseOrUnpauseGasCompensations() external virtual override {
@@ -55,8 +57,26 @@ contract GovernanceLotteryUpgrade is
         gasCompensationsPaused = !gasCompensationsPaused;
     }
 
+    function castDelegatedVote(
+        address[] memory from,
+        uint256 proposalId,
+        bool support
+    ) external virtual override gasCompensation(voter, !compensatedForVote[voter][proposalId], 0) {
+        compensatedForVote[voter][proposalId] = true;
+        for (uint256 i = 0; i < from.length; i++) {
+            require(
+                delegatedTo[from[i]] == msg.sender,
+                "Governance: not authorized"
+            );
+            super._castVote(from[i], proposalId, support);
+        }
+        if (lockedBalance[msg.sender] > 0) {
+            super._castVote(msg.sender, proposalId, support);
+        }
+    }
+
     function claimRewards(uint256 proposalId) external virtual override {
-        _rollAndTransferUserForProposal(proposalId, address(torn), msg.sender);
+        GovernanceLottery.claimRewards(proposalId, address(torn), msg.sender);
     }
 
     /// @notice checker for success on deployment
@@ -73,7 +93,7 @@ contract GovernanceLotteryUpgrade is
         internal
         virtual
         override
-        gasCompensation(voter, compensatedForVote[voter][proposalId])
+        gasCompensation(voter, !compensatedForVote[voter][proposalId], 0)
     {
         compensatedForVote[voter][proposalId] = true;
         super._castVote(voter, proposalId, support);
@@ -82,63 +102,5 @@ contract GovernanceLotteryUpgrade is
             voter,
             proposals[proposalId].receipts[voter].votes
         );
-    }
-
-    function _compensateGasLogic(address account, uint256 amount)
-        internal
-        virtual
-        override
-    {
-        uint256 toCompensate = SafeMath.div(
-            SafeMath.mul(amount, 1e18),
-            univ3TornPool.getTWAPFromPool(10000)
-        );
-        toCompensate = (toCompensate < gasTokenAmountInEther)
-            ? toCompensate
-            : gasTokenAmountInEther;
-
-        require(
-            torn.transfer(account, toCompensate),
-            "compensation transfer failed"
-        );
-
-        gasTokenAmountInEther -= toCompensate;
-    }
-
-    function _checkIfProposalIsActive(uint256 proposalId)
-        internal
-        view
-        override
-        returns (bool)
-    {
-        return (state(proposalId) == ProposalState.Active);
-    }
-
-    function _checkIfProposalIsPending(uint256 proposalId)
-        internal
-        view
-        override
-        returns (bool)
-    {
-        return (state(proposalId) == ProposalState.Pending);
-    }
-
-    function _checkIfProposalIsFinished(uint256 proposalId)
-        internal
-        view
-        override
-        returns (bool)
-    {
-        return ((state(proposalId) == ProposalState.Executed) ||
-            (state(proposalId) == ProposalState.Defeated));
-    }
-
-    function _checkIfAccountHasVoted(uint256 proposalId, address account)
-        internal
-        view
-        override
-        returns (bool)
-    {
-        return (proposals[proposalId].receipts[account]).hasVoted;
     }
 }
