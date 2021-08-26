@@ -5,6 +5,7 @@ require("@nomiclabs/hardhat-waffle");
 require('hardhat-spdx-license-identifier');
 require('hardhat-storage-layout');
 require('hardhat-log-remover');
+require('hardhat-contract-sizer');
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
@@ -48,7 +49,7 @@ module.exports = {
          blockNumber: 13042331,
        },
        initialBaseFeePerGas: 5,
-       loggingEnabled: true,
+       loggingEnabled: false, 
      },
      localhost: {
        url: "http://localhost:8545",

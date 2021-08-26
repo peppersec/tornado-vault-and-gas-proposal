@@ -16,6 +16,9 @@ describe("Start of tests", () => {
 	let BasefeeLogicFactory;
 	let BasefeeLogicContract;
 
+	let Uni3LibraryFactory;
+	let Uni3LibraryContract;
+
 	let vrfCoordinator;
 	let basefeeLogicImp;
 	let tornadoMultisig;
@@ -95,12 +98,20 @@ describe("Start of tests", () => {
 		signerArray = await ethers.getSigners();
 		dore = signerArray[0];
 
+		Uni3LibraryFactory = await ethers.getContractFactory("UniswapV3TWAP");
+		Uni3LibraryContract = await Uni3LibraryFactory.deploy();
+
 		BasefeeLogicFactory = await ethers.getContractFactory("contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC");
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
 
 		MockProposalFactory = await ethers.getContractFactory("MockProposal1");
 
-		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal");
+		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal", {
+			libraries: {
+				UniswapV3TWAP: Uni3LibraryContract.address,
+			},
+		});
+
 		ProposalContract = await ProposalFactory.deploy(260000, BasefeeLogicContract.address);
 
 		LoopbackProxy = await ethers.getContractAt("./tornado-governance/contracts/LoopbackProxy.sol:LoopbackProxy", proxy_address);
@@ -216,7 +227,7 @@ describe("Start of tests", () => {
 						.add(1)
 						.toNumber()
 				);
-				clog("Whale address: ", whale.address, " Balance locked: ", (await GovernanceContract.lockedBalance(whale.address)));
+				clog("Whale address: ", whale.address, " Balance locked: ", (await GovernanceContract.lockedBalance(whale.address)).toString());
 				GovernanceContract = await GovernanceContract.connect(whale);
 				await expect(GovernanceContract.castVote(id, true)).to.not.be.reverted;
 				state = await GovernanceContract.state(id);
@@ -274,6 +285,7 @@ describe("Start of tests", () => {
 
 			it("Test multiple accounts proposal", async () => {
 				ProposalContract = await MockProposalFactory.deploy();
+				////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
 				let response, id, state;
 				[response, id, state] = await propose([whales[(rand(1, 9) % 4)], ProposalContract, "mock1"]);
 
@@ -283,11 +295,15 @@ describe("Start of tests", () => {
 				expect(args.target).to.be.equal(ProposalContract.address);
 				expect(args.description).to.be.equal("mock1");
 				expect(state).to.be.equal(ProposalState.Pending);
+
+				////////////////////////INCREMENT TO VOTING TIME////////////////////////
 				await minewait(
 					(await GovernanceContract.VOTING_DELAY())
 						.add(1)
 						.toNumber()
 				);
+
+				///////////////////////////// VOTE ////////////////////////////
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
 					let randN = rand(i * 5, i * 6);
@@ -298,19 +314,25 @@ describe("Start of tests", () => {
 						await expect(gov.castVote(id, false)).to.not.be.reverted;
 					}
 				}
+
+				//////////////////////////////// GET STATE ///////////////////////////////
 				state = await GovernanceContract.state(id);
 				expect(state).to.be.equal(ProposalState.Active);
-				for (i = 0; i < 4; i++) {
-					const userData = (await GovernanceContract.getUserVotingData(whales[i].address, id));
-					console.log(
-						"--------------------------------------\n",
-						`Whale ${i} data:\n`,
-						"Win chance: ", userData[0].toString(), "\n",
-						"Locked torn: ", (await GovernanceContract.lockedBalance(whales[i].address)).toString(), "\n",
-						"Position: ", userData[1].toString(), "\n",
-						"--------------------------------------\n"
-					)
-				}
+
+				///////////////////////////// WHALE INFO ///////////////////////////////////
+    				for (i = 0; i < 4; i++) {
+    					const userData = (await GovernanceContract.getProposalDataForAccount(id, whales[i].address, true));
+    					console.log(
+    						"--------------------------------------\n",
+    						`Whale ${i} data:\n`,
+    						"Win chance: ", userData[4].toString(), "\n",
+    						"Locked torn: ", (await GovernanceContract.lockedBalance(whales[i].address)).toString(), "\n",
+    						"Position: ", userData[3].toString(), "\n",
+    						"--------------------------------------\n"
+    					)
+    				}
+
+				/////////////////////////////// PROPOSAL STATE /////////////////////////////////
 				console.log(
 					"--------------------------------------\n",
 					"Proposal data: \n",
@@ -319,10 +341,11 @@ describe("Start of tests", () => {
 					"--------------------------------------\n",
 				)
 
+				/////////////////////////////// CONNECT TO MULTISIG AND FAIL PREPARE ///////////////////////////////
 				let multiGov = await GovernanceContract.connect(tornadoMultisig);
 				let multiTorn = await TornToken.connect(tornadoMultisig);
 
-				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(0);
+				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(0);
 
 				const tx1 = {
 					to: tornadoMultisig.address,
@@ -331,16 +354,17 @@ describe("Start of tests", () => {
 				await dore.sendTransaction(tx1);
 
 				await expect(multiTorn.approve(GovernanceContract.address, pE(1000000))).to.not.be.reverted;
-				await expect(multiGov.whitelistProposal(id, pE(5000), BigNumber.from(1000))).to.not.be.reverted;
+
+				// FAIL PREPARE
 				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"))).to.be.reverted;
 
-				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(1);
-
+				/////////////////////////////// INCREMENT AGAIN //////////////////////////////////
 				await minewait(
 					(await GovernanceContract.VOTING_PERIOD())
 						.add(await GovernanceContract.EXECUTION_DELAY()).add(10000).toNumber()
 				);
 
+				////////////// EXECUTE
 				if (
 					BigNumber.from(await GovernanceContract.state(id)).eq(ProposalState.Defeated)
 				) {
@@ -349,79 +373,44 @@ describe("Start of tests", () => {
 					await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 				}
 
-				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"))).to.not.be.reverted;
+				///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
+				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"), BigNumber.from(4))).to.not.be.reverted;
 				await expect(multiGov.setSpendableTornForGasCompensations(pE(500))).to.not.be.reverted;
 
-				const prepareTimestamp = await timestamp();
-				clog("Timestamp: ", prepareTimestamp);
+				clog("Transfer per winner: ", (await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[2].toString());
 
-				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(2);
+				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(1);
 
+				/////////////////////////////////// PREPARE CHAINLINK ////////////////////////////////
 				let vrfGov = await GovernanceContract.connect(vrfCoordinator);
-
 				await sendr("hardhat_setBalance", [vrfCoordinator.address, "0x1B1AE4D6E2EF500000"]);
 
+				///////////////////// FULFILL
 				const rId = await GovernanceContract.lastRequestId();
+				await expect(vrfGov.rawFulfillRandomness(rId, someHex[1])).to.not.be.reverted;
 
-				await expect(vrfGov.rawFulfillRandomness(rId, someHex[2])).to.not.be.reverted;
-				expect((await GovernanceContract.getProposalData(id))[0]).to.equal(3);
+				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(2);
 
 				clog(
-					`Total sqrt (chance) sum: ${(await GovernanceContract.getProposalData(id))[1].toString()}`
+					`Total sqrt (chance) sum: ${(await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[1].toString()}`
 				)
-				clog("Timestamp: ", await timestamp());
-
-				// find at line 211 of TornadoLotteryFunctionality.sol the console.log to give full data on rolls,
-				// for import insert above "contract TornadoLotteryFunctionality {..." import "hardhat/console.sol";
 
 				for (i = 0; i < 4; i++) {
 					let gov = await GovernanceContract.connect(whales[i]);
 					await expect(gov.claimRewards(id)).to.not.be.reverted;
-
+					let whaleChance = (await GovernanceContract.getProposalDataForAccount(id,whales[i].address, true))[4];
+					let winningNumbers = (await GovernanceContract.getWinningNumbersForProposal(id));
 					console.log(
 						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
+						"Whale chance: ", (await GovernanceContract.getProposalDataForAccount(id,whales[i].address, true))[4].toString(), "\n",
 						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
+						"Possible winning numbers: \n",  winningNumbers[0].toString(), "\n", 
+						winningNumbers[1].toString(), "\n", winningNumbers[2].toString(), "\n",
+						winningNumbers[3].toString(), "\n",
+						"Test: ", await GovernanceContract._checkIfAccountHasWon(id, whales[i].address), "\n",
 						"--------------------------------------\n",
 					)
 				}
-
-				await minewait((await timestamp()) + 989 - prepareTimestamp);
-				clog("Timestamp: ", await timestamp());
-
-				for (i = 0; i < 4; i++) {
-					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.claimRewards(id)).to.not.be.reverted;
-
-					console.log(
-						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
-						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
-						"--------------------------------------\n",
-					)
-				}
-
-				while (
-					(await GovernanceContract.getProposalData(id))[3].toNumber() > 0
-				) {
-					await minewait(996); // 4 txs increment by 1
-					clog("Timestamp: ", await timestamp());
-
-					for (i = 0; i < 4; i++) {
-						let gov = await GovernanceContract.connect(whales[i]);
-						await expect(gov.claimRewards(id)).to.not.be.reverted;
-
-						console.log(
-							"--------------------------------------\n",
-							"Whale chance: ", (await GovernanceContract.getUserVotingData(whales[i].address, id))[0].toString(), "\n",
-							"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
-							"--------------------------------------\n",
-						)
-					}
-
-				}
-
-
 			});
 		});
 	});

@@ -18,6 +18,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
     }
 
     enum ProposalStateAndValidity {
+        ProposalNotPreparedForPayouts,
         PreparingProposalForPayouts,
         ProposalReadyForPayouts
     }
@@ -96,22 +97,36 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         return idToUserVotingData[account][proposalId];
     }
 
-    function getProposalDataForAccount(uint256 proposalId, address account)
-        external
-        view
-        returns (ReturnableProposalDataForAccount memory)
-    {
-        uint256 accountIndex = proposalWhitelist[proposalId].accountPosition[
-            account
-        ];
-        return
-            ReturnableProposalDataForAccount(
+    function getProposalDataForAccount(
+        uint256 proposalId,
+        address account,
+        bool registered
+    ) external view returns (ReturnableProposalDataForAccount memory) {
+        uint256 accountIndex;
+        uint256 accountSqrtTorn;
+
+        if (registered) {
+            accountIndex = proposalWhitelist[proposalId].accountPosition[
+                account
+            ];
+            accountSqrtTorn = proposalWhitelist[proposalId].intervals[
+                accountIndex
+            ];
+        } else {
+            accountIndex = 0;
+            accountSqrtTorn = 0;
+        }
+
+        ReturnableProposalDataForAccount
+            memory returnData = ReturnableProposalDataForAccount(
                 proposalWhitelist[proposalId].proposalState,
                 proposalWhitelist[proposalId].sqrtTornSum,
                 proposalWhitelist[proposalId].transferPerWinner,
                 accountIndex,
-                proposalWhitelist[proposalId].intervals[accountIndex]
+                accountSqrtTorn
             );
+
+        return returnData;
     }
 
     function getWinningNumbersForProposal(uint256 proposalId)
@@ -215,7 +230,7 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
             proposalWhitelist[idForLatestRandomNumber].winningNumbers[
                 i
             ] = expand(
-                randomness,
+                idForLatestRandomNumber,
                 i + 1,
                 proposalWhitelist[idForLatestRandomNumber].sqrtTornSum
             );
@@ -284,24 +299,29 @@ abstract contract TornadoLotteryFunctionality is LotteryRandomNumberConsumer {
         uint256 accountVotes
     ) private returns (uint256) {
         uint256 newSquareRoot = _calculateSquareRoot(accountVotes);
-        uint256 oldSum = proposalWhitelist[proposalId].sqrtTornSum;
         uint256 accountIndex = proposalWhitelist[proposalId].accountPosition[
             account
         ];
+        uint256 oldSum = proposalWhitelist[proposalId].sqrtTornSum;
 
-        proposalWhitelist[proposalId].sqrtTornSum = oldSum
-            .sub(proposalWhitelist[proposalId].intervals[accountIndex])
-            .add(newSquareRoot);
+        if (accountIndex > 0) {
+            proposalWhitelist[proposalId].sqrtTornSum = oldSum
+                .add(newSquareRoot)
+                .sub(proposalWhitelist[proposalId].intervals[accountIndex]);
 
-        if (proposalWhitelist[proposalId].accountPosition[account] > 0) {
-            proposalWhitelist[proposalId].intervals.push(newSquareRoot);
-            proposalWhitelist[proposalId].accountPosition[
-                account
-            ] = proposalWhitelist[proposalId].intervals.length;
-        } else {
             proposalWhitelist[proposalId].intervals[
                 accountIndex
             ] = newSquareRoot;
+        } else {
+            proposalWhitelist[proposalId].intervals.push(newSquareRoot);
+
+            proposalWhitelist[proposalId].accountPosition[
+                account
+            ] = proposalWhitelist[proposalId].intervals.length.sub(1);
+
+            proposalWhitelist[proposalId].sqrtTornSum = oldSum.add(
+                newSquareRoot
+            );
         }
 
         return newSquareRoot;
