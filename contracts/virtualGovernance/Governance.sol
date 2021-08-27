@@ -201,7 +201,7 @@ contract Governance is Initializable, Configuration, Delegation, EnsResolve {
         _transferTokens(msg.sender, amount);
     }
 
-    function unlock(uint256 amount) external {
+    function unlock(uint256 amount) external virtual {
         require(
             getBlockTimestamp() > canWithdrawAfter[msg.sender],
             "Governance: tokens are locked"
@@ -382,7 +382,7 @@ contract Governance is Initializable, Configuration, Delegation, EnsResolve {
         }
     }
 
-    function _transferTokens(address owner, uint256 amount) internal {
+    function _transferTokens(address owner, uint256 amount) internal virtual {
         require(
             torn.transferFrom(owner, address(this), amount),
             "TORN: transferFrom failed"

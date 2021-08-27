@@ -3,12 +3,11 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import {Governance} from "./virtualGovernance/Governance.sol";
+import {GovernanceV2} from "./governance_v2/GovernanceV2.sol";
 import {GasCompensator} from "./basefee/GasCompensator.sol";
-import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 import {TornadoLottery} from "./TornadoLottery.sol";
 
-contract GovernanceLotteryUpgrade is Governance, GasCompensator {
+contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     address public constant TornadoMultisig =
         address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
 
@@ -17,7 +16,7 @@ contract GovernanceLotteryUpgrade is Governance, GasCompensator {
 
     event RegisterAccountReverted(uint256 proposalId, address account);
 
-    constructor(address _logic) public Governance() GasCompensator(_logic) {}
+    constructor(address _logic) public GovernanceV2() GasCompensator(_logic) {}
 
     modifier onlyMultisig() {
         require(msg.sender == TornadoMultisig, "only multisig");
@@ -116,8 +115,8 @@ contract GovernanceLotteryUpgrade is Governance, GasCompensator {
 
     /// @notice checker for success on deployment
     /// @return returns precise version of governance
-    function version() external pure virtual returns (string memory) {
-        return "2.lottery-upgrade";
+    function version() external pure virtual override returns (string memory) {
+        return "2.lottery-and-vault-upgrade";
     }
 
     function _castVote(
