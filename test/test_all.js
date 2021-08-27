@@ -11,17 +11,15 @@ const mockBasefeeBytecode = mockBasefeeArtifacts.bytecode;
 describe("Start of tests", () => {
 	let ProposalFactory;
 	let ProposalContract;
-	let LoopbackProxy;
 	let GovernanceContract;
 	let TornToken;
 	let BasefeeLogicFactory;
 	let BasefeeLogicContract;
-
-	let Uni3LibraryFactory;
-	let Uni3LibraryContract;
+	let ChainlinkToken;
+	let VRFRequestHelperFactory;
+	let VRFRequestHelper;
 
 	let vrfCoordinator;
-	let basefeeLogicImp;
 	let tornadoMultisig;
 
 	let MockProposalFactory;
@@ -42,6 +40,7 @@ describe("Start of tests", () => {
 
 	let dore;
 	let whale;
+	let linkMarine;
 
 	let signerArray = [];
 	let whales = [];
@@ -108,10 +107,13 @@ describe("Start of tests", () => {
 
 		ProposalContract = await ProposalFactory.deploy(260000, BasefeeLogicContract.address);
 
-		LoopbackProxy = await ethers.getContractAt("./tornado-governance/contracts/LoopbackProxy.sol:LoopbackProxy", proxy_address);
-		GovernanceContract = await ethers.getContractAt("./tornado-governance/contracts/Governance.sol:Governance", proxy_address);
+		VRFRequestHelperFactory = await ethers.getContractFactory("VRFRequestHelper");
+		VRFRequestHelper = await VRFRequestHelperFactory.deploy();
+
+		GovernanceContract = await ethers.getContractAt("./contracts/virtualGovernance/Governance.sol:Governance", proxy_address);
 
 		TornToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", "0x77777FeDdddFfC19Ff86DB637967013e6C6A116C");
+		ChainlinkToken = await ethers.getContractAt("@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol:LinkTokenInterface", "0x514910771AF9Ca656af840dff83E8264EcF986CA")
 
 		votingDelay = await GovernanceContract.VOTING_DELAY();
 		votingPeriod = await GovernanceContract.VOTING_PERIOD();
@@ -149,6 +151,11 @@ describe("Start of tests", () => {
 			it("Should successfully imitiate tornado multisig", async () => {
 				await sendr("hardhat_impersonateAccount", ["0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4"]);
 				tornadoMultisig = await ethers.getSigner("0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4");
+			});
+
+			it("Should successfully imititate a link marine", async () => {
+				await sendr("hardhat_impersonateAccount", ["0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02"]);
+				linkMarine = await ethers.getSigner("0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02");
 			});
 
 			it("Should successfully imitate whale", async () => {
@@ -338,10 +345,36 @@ describe("Start of tests", () => {
 				expect(state).to.be.equal(ProposalState.Active);
 
 				///////////////////////////// VOTER INFO ///////////////////////////////////
-    				for (i = 0; i < 10; i++) {
+    				for (i = 0; i < 50; i+=5) {
+					const j = BigNumber.from(i);
 					console.log(
 						`Voter ${i} sqrt: `,
-						await GovernanceLottery.lotteryUserData(i)
+						((await GovernanceLottery.lotteryUserData(id,j))[0]).toString(),
+						`Voter ${i+1} sqrt: `,
+						((await GovernanceLottery.lotteryUserData(id,j.add(1)))[0]).toString(),
+						`Voter ${i+2} sqrt: `,
+						((await GovernanceLottery.lotteryUserData(id,j.add(2)))[0]).toString(),
+						`Voter ${i+3} sqrt: `,
+						((await GovernanceLottery.lotteryUserData(id,j.add(3)))[0]).toString(),
+						`Voter ${i+4} sqrt: `,
+						((await GovernanceLottery.lotteryUserData(id,j.add(4)))[0]).toString(),
+						"\n",
+					)
+    				}
+
+				for (i = 0; i < 50; i+=5) {
+					console.log(
+						`Voter ${i} sqrt: `,
+						((await signerArmy[i].getBalance()).sub(pE(1))).toString(),
+						`Voter ${i+1} sqrt: `,
+						((await signerArmy[i+1].getBalance()).sub(pE(1))).toString(),
+						`Voter ${i+2} sqrt: `,
+						((await signerArmy[i+2].getBalance()).sub(pE(1))).toString(),
+						`Voter ${i+3} sqrt: `,
+						((await signerArmy[i+3].getBalance()).sub(pE(1))).toString(),
+						`Voter ${i+4} sqrt: `,
+						((await signerArmy[i+4].getBalance()).sub(pE(1))).toString(),
+						"\n",
 					)
     				}
 
@@ -355,7 +388,7 @@ describe("Start of tests", () => {
 				)
 
 				/////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
-				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(0);
+				expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(0);
 
 				const tx1 = {
 					to: tornadoMultisig.address,
@@ -383,43 +416,59 @@ describe("Start of tests", () => {
 					await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 				}
 
+				/////////////////////////// FUND WITH CHAINLINK
+				await dore.sendTransaction({ to: linkMarine.address, value: pE(1) });
+				ChainlinkToken = await ChainlinkToken.connect(linkMarine);
+
+				await ChainlinkToken.transfer(GovernanceLottery.address, pE(500));
+				expect(await ChainlinkToken.balanceOf(GovernanceLottery.address)).to.equal(pE(500));
+
 				///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
-				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"), BigNumber.from(4))).to.not.be.reverted;
+				await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits("16666", "szabo"))).to.not.be.reverted;
 
+				clog("Transfer per winner: ", ((await GovernanceLottery.proposalsData(id))[1]).toString());
 
-				clog("Transfer per winner: ", (await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[2].toString());
-
-				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(1);
+				expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(1);
 
 				/////////////////////////////////// PREPARE CHAINLINK ////////////////////////////////
-				let vrfGov = await GovernanceContract.connect(vrfCoordinator);
+				let vrfGov = await GovernanceLottery.connect(vrfCoordinator);
 				await sendr("hardhat_setBalance", [vrfCoordinator.address, "0x1B1AE4D6E2EF500000"]);
 
 				///////////////////// FULFILL
-				const rId = await GovernanceContract.lastRequestId();
+				const rId = await VRFRequestHelper.makeRequestId((await GovernanceLottery.keyHash()), (await VRFRequestHelper.makeVRFInputSeed(
+					await GovernanceLottery.keyHash(),
+					BigNumber.from(0),
+					GovernanceLottery.address,
+					BigNumber.from(0))
+				));
+
 				await expect(vrfGov.rawFulfillRandomness(rId, someHex[1])).to.not.be.reverted;
 
-				expect((await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[0]).to.equal(2);
+				expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(2);
 
-				clog(
-					`Total sqrt (chance) sum: ${(await GovernanceContract.getProposalDataForAccount(id, whales[0].address, true))[1].toString()}`
-				)
+				console.log("*----＼(^＼)(／^)／--WINNING NUMBERS--＼(^＼)(／^)／----*");
+				for(let i =0; i < 10; i++) {
+					console.log((await GovernanceLottery.lotteryNumbers(id,i)).toString());
+				}
+				console.log("--------------------------------------------------");
 
-				for (i = 0; i < 4; i++) {
-					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.claimRewards(id)).to.not.be.reverted;
-					let whaleChance = (await GovernanceContract.getProposalDataForAccount(id,whales[i].address, true))[4];
-					let winningNumbers = (await GovernanceContract.getWinningNumbersForProposal(id));
-					console.log(
-						"--------------------------------------\n",
-						"Whale chance: ", (await GovernanceContract.getProposalDataForAccount(id,whales[i].address, true))[4].toString(), "\n",
-						"Whale TORN balance: ", (await TornToken.balanceOf(whales[i].address)).toString(), "\n",
-						"Possible winning numbers: \n",  winningNumbers[0].toString(), "\n", 
-						winningNumbers[1].toString(), "\n", winningNumbers[2].toString(), "\n",
-						winningNumbers[3].toString(), "\n",
-						"Test: ", await GovernanceContract._checkIfAccountHasWon(id, whales[i].address), "\n",
-						"--------------------------------------\n",
-					)
+				for(i = 0; i < 50; i++) {
+
+				}
+
+				for (i = 0; i < 50; i++) {
+					let gov = await GovernanceContract.connect(signerArmy[i]);
+					const voterIndex = await GovernanceLottery.findUserIndex(id, signerArmy[i].address);
+					let winIndex = -1;
+					for(j = 0; j < 10; j++) {
+						if(await GovernanceLottery.checkIfAccountHasWon(id, voterIndex, j)) {
+							winIndex = j;
+						}
+					}
+					if(winIndex >= 0) {
+						await expect(gov.claimRewards(id, voterIndex, winIndex)).to.not.be.reverted;
+						console.log(`Account ${i} has won: `, (await TornToken.balanceOf(signerArmy[i].address)).toString(), " With number index: ", winIndex);
+					}
 				}
 			});
 		});

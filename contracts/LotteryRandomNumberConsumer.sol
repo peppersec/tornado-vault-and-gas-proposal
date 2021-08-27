@@ -6,7 +6,7 @@ import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
     uint256 internal idForLatestRandomNumber;
-    bytes32 internal keyHash;
+    bytes32 public keyHash;
     uint256 internal fee;
 
     constructor(

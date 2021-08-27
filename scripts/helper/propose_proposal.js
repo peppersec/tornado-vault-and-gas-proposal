@@ -6,7 +6,7 @@ async function propose(proposalArgs) {
 	const proposer = proposalArgs[0];
 	const ProposalContract = proposalArgs[1];
 
-	let GovernanceContract = await ethers.getContractAt("../artifacts/tornado-governance/contracts/Governance.sol:Governance", "0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce");
+	let GovernanceContract = await ethers.getContractAt("./contracts/virtualGovernance/Governance.sol:Governance", "0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce");
 	GovernanceContract = await GovernanceContract.connect(proposer);
 
 	const response = await GovernanceContract.propose(ProposalContract.address, proposalArgs[2]);
