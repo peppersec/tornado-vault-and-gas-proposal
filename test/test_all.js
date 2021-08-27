@@ -4,6 +4,7 @@ const { BigNumber } = require("@ethersproject/bignumber");
 const { propose } = require("../scripts/helper/propose_proposal.js");
 const testcases = require("@ethersproject/testcases");
 const seedbase = require("../resources/hdnode.json");
+const accountList = require("../resources/accounts.json");
 const mockBasefeeArtifacts = require("../artifacts/contracts/testing/BASEFEE_LOGIC.sol/BASEFEE_LOGIC.json");
 const mockBasefeeBytecode = mockBasefeeArtifacts.bytecode;
 
@@ -98,19 +99,12 @@ describe("Start of tests", () => {
 		signerArray = await ethers.getSigners();
 		dore = signerArray[0];
 
-		Uni3LibraryFactory = await ethers.getContractFactory("UniswapV3TWAP");
-		Uni3LibraryContract = await Uni3LibraryFactory.deploy();
-
 		BasefeeLogicFactory = await ethers.getContractFactory("contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC");
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
 
 		MockProposalFactory = await ethers.getContractFactory("MockProposal1");
 
-		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal", {
-			libraries: {
-				UniswapV3TWAP: Uni3LibraryContract.address,
-			},
-		});
+		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal");
 
 		ProposalContract = await ProposalFactory.deploy(260000, BasefeeLogicContract.address);
 
@@ -245,7 +239,8 @@ describe("Start of tests", () => {
 			});
 
 			let addrArray = [];
-			it("Should impersonate multiple accounts", async () => {
+			let signerArmy = [];
+			it("Should impersonate multiple accounts and fund 50 accounts", async () => {
 				addrArray = [
 					"0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b",
 					"0xF977814e90dA44bFA03b6295A0616a897441aceC",
@@ -253,48 +248,65 @@ describe("Start of tests", () => {
 					"0x055AD5E56c11c0eF55818155c69ed9BA2f4b3e90",
 				]
 
-				let balanceObj = {};
-				function assignBalance(bal) {
-					this.balance = bal;
-				}
-
 				for (i = 0; i < 4; i++) {
 					await sendr("hardhat_impersonateAccount", [addrArray[i]]);
 					whales[i] = await ethers.getSigner(addrArray[i]);
-					balanceObj[i] = new assignBalance((await TornToken.balanceOf(addrArray[i])).toString());
 				}
 
-				for (i = 0; i < 3; i++) {//last test really unnecessary
-					let torn = await TornToken.connect(whales[i]);
-					await torn.approve(addrArray[i + 1], pE(1));
-					await expect(() => torn.transfer(addrArray[i + 1], pE(1))).to.changeTokenBalance(torn, whales[i + 1], pE(1));
+				for (i = 1; i < 4; i++) {//last test really unnecessary
+					const torn = await TornToken.connect(whales[i]);
+					const whaleBalance = (await torn.balanceOf(whales[i].address));
+					await torn.approve(addrArray[0], whaleBalance);
+					await expect(() => torn.transfer(addrArray[0], whaleBalance)).to.changeTokenBalance(torn, whales[0], whaleBalance);
 				}
 
-				console.table(balanceObj);
+				const whale0Balance = (await TornToken.balanceOf(whales[0].address));
+				const toTransfer = whale0Balance.sub(pE(10000)).div(50);
+				let torn0 = await TornToken.connect(whales[0]);
 
-				for (i = 0; i < 4; i++) {
-					let torn = await TornToken.connect(whales[i]);
-					let balance = await torn.balanceOf(whales[i].address);
-					await expect(torn.approve(GovernanceContract.address, pE(800000))).to.not.be.reverted;
-					let gov = await GovernanceContract.connect(whales[i]);
-					await expect(gov.lockWithApproval(balance)).to.not.be.reverted;
+				for (i = 0; i < 50; i++) {
+					const accAddress = accountList[i+7].checksumAddress;
+					await sendr("hardhat_impersonateAccount", [accAddress]);
+					console.log("At index: ", i);
+					signerArmy[i] = await ethers.getSigner(accAddress);
+					const tx = { to: signerArmy[i].address, value: pE(1)};
+
+					await signerArray[0].sendTransaction(tx);
+
+					await expect(() => torn0.transfer(signerArmy[i].address, toTransfer)).to.changeTokenBalance(torn0, signerArmy[i], toTransfer);
+					let torn = await torn0.connect(signerArmy[i]);
+
+					await expect(torn.approve(GovernanceContract.address, toTransfer)).to.not.be.reverted;
+					const gov = await GovernanceContract.connect(signerArmy[i]);
+					await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer));
 				}
+
+				const gov = await GovernanceContract.connect(whales[0]);
+				await expect(torn0.approve(GovernanceContract.address, pE(10000))).to.not.be.reverted;
+				await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn0, whales[0], BigNumber.from(0).sub(toTransfer));
 
 				snapshotIdArray[2] = await sendr("evm_snapshot", []);
 			});
 
 			it("Test multiple accounts proposal", async () => {
 				ProposalContract = await MockProposalFactory.deploy();
+				const lotteryAddress = (await GovernanceContract.GovernanceLottery());
+				const GovernanceLottery = await ethers.getContractAt("TornadoLottery", lotteryAddress);
 				clog("Balance of governance contract: ", (await TornToken.balanceOf(GovernanceContract.address)).toString());
+
 				////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
 				let response, id, state;
-				[response, id, state] = await propose([whales[(rand(1, 9) % 4)], ProposalContract, "mock1"]);
+				[response, id, state] = await propose([whales[0], ProposalContract, "LotteryUpgrade"]);
+//			console.log(
+//				"Proposal threshold: ", (await GovernanceContract.PROPOSAL_THRESHOLD()).toString(), 
+//				"\n", "Whale 0 balance: ", (await GovernanceContract.))
+//			[response, id, state] = await propose([whales[0], ProposalContract, "LotteryUpgrade"]);
 
 				const { events } = await response.wait();
 				const args = events.find(({ event }) => event == "ProposalCreated").args
 				expect(args.id).to.be.equal(id);
 				expect(args.target).to.be.equal(ProposalContract.address);
-				expect(args.description).to.be.equal("mock1");
+				expect(args.description).to.be.equal("LotteryUpgrade");
 				expect(state).to.be.equal(ProposalState.Pending);
 
 				////////////////////////INCREMENT TO VOTING TIME////////////////////////
@@ -304,15 +316,14 @@ describe("Start of tests", () => {
 						.toNumber()
 				);
 
-
 				/////////////////// PREPARE MULTISIG AND COMPENSATIONS
 				let multiGov = await GovernanceContract.connect(tornadoMultisig);
 				let multiTorn = await TornToken.connect(tornadoMultisig);
-				await expect(multiGov.gasCompensation(pE(500))).to.not.be.reverted;
+				await expect(multiGov.setGasCompensationsLimit(pE(500))).to.not.be.reverted;
 
 				///////////////////////////// VOTE ////////////////////////////
-				for (i = 0; i < 4; i++) {
-					let gov = await GovernanceContract.connect(whales[i]);
+				for (i = 0; i < 50; i++) {
+					let gov = await GovernanceContract.connect(signerArmy[i]);
 					let randN = rand(i * 5, i * 6);
 					randN = randN % 2;
 					if (randN > 0) {
@@ -326,17 +337,12 @@ describe("Start of tests", () => {
 				state = await GovernanceContract.state(id);
 				expect(state).to.be.equal(ProposalState.Active);
 
-				///////////////////////////// WHALE INFO ///////////////////////////////////
-    				for (i = 0; i < 4; i++) {
-    					const userData = (await GovernanceContract.getProposalDataForAccount(id, whales[i].address, true));
-    					console.log(
-    						"--------------------------------------\n",
-    						`Whale ${i} data:\n`,
-    						"Win chance: ", userData[4].toString(), "\n",
-    						"Locked torn: ", (await GovernanceContract.lockedBalance(whales[i].address)).toString(), "\n",
-    						"Position: ", userData[3].toString(), "\n",
-    						"--------------------------------------\n"
-    					)
+				///////////////////////////// VOTER INFO ///////////////////////////////////
+    				for (i = 0; i < 10; i++) {
+					console.log(
+						`Voter ${i} sqrt: `,
+						await GovernanceLottery.lotteryUserData(i)
+					)
     				}
 
 				/////////////////////////////// PROPOSAL STATE /////////////////////////////////
