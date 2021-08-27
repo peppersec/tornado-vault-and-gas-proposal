@@ -5,7 +5,6 @@ pragma solidity ^0.6.12;
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
-
     uint256 internal idForLatestRandomNumber;
     bytes32 internal keyHash;
     uint256 internal fee;
@@ -44,8 +43,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
         uint256 entropy,
         uint256 upperBound
     ) public pure returns (uint256) {
-        return (uint256(
-            keccak256(abi.encode(randomNumber, entropy))
-        ) % upperBound);
+        return (uint256(keccak256(abi.encode(randomNumber, entropy))) %
+            upperBound);
     }
 }

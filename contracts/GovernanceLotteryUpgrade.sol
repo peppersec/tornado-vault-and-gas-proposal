@@ -4,40 +4,42 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import {Governance} from "./virtualGovernance/Governance.sol";
-import {GasCalculator} from "./basefee/GasCalculator.sol";
+import {GasCompensator} from "./basefee/GasCompensator.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
-import {TornadoLottery} from "./TornadoLottery";
+import {TornadoLottery} from "./TornadoLottery.sol";
 
-import "hardhat/console.sol";
+contract GovernanceLotteryUpgrade is Governance, GasCompensator {
+    address public constant TornadoMultisig =
+        address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
 
-contract GovernanceLotteryUpgrade is
-    Governance,
-    GasCalculator
-{
     mapping(address => mapping(uint256 => bool)) public compensatedForVote;
     TornadoLottery public GovernanceLottery;
 
-    constructor(address _logic)
-        public
-        Governance()
-        GasCalculator(_logic)
-    {}
+    event RegisterAccountReverted(uint256 proposalId, address account);
+
+    constructor(address _logic) public Governance() GasCompensator(_logic) {}
+
+    modifier onlyMultisig() {
+        require(msg.sender == TornadoMultisig, "only multisig");
+        _;
+    }
 
     function deployLottery() external returns (bool) {
-        require(address(GovernanceLottery) == address(0), "vault already deployed");
-	GovernanceLottery = new TornadoLottery();
+        require(
+            address(GovernanceLottery) == address(0),
+            "vault already deployed"
+        );
+        GovernanceLottery = new TornadoLottery();
         assert(address(GovernanceLottery) != address(0));
-	torn.approve(address(GovernanceLottery), type(uint256).max);
-	return true;
+        torn.approve(address(GovernanceLottery), type(uint256).max);
+        return true;
     }
 
     function prepareProposalForPayouts(
         uint256 proposalId,
-        uint256 proposalRewards,
-        uint256 numberOfWinners
-    ) external virtual {
-        require(msg.sender == TornadoMultisig, "only multisig");
-        GovernanceLottery._prepareProposalForPayouts(
+        uint256 proposalRewards
+    ) external onlyMultisig {
+        GovernanceLottery.prepareProposalForPayouts(
             proposalId,
             proposalRewards
         );
@@ -47,13 +49,17 @@ contract GovernanceLotteryUpgrade is
         external
         virtual
         override
+        onlyMultisig
     {
-        require(msg.sender == TornadoMultisig, "only multisig");
         gasCompensationsLimit = _gasCompensationsLimit;
     }
 
-    function pauseOrUnpauseGasCompensations() external virtual override {
-        require(msg.sender == TornadoMultisig, "only multisig");
+    function pauseOrUnpauseGasCompensations()
+        external
+        virtual
+        override
+        onlyMultisig
+    {
         gasCompensationsPaused = !gasCompensationsPaused;
     }
 
@@ -61,22 +67,51 @@ contract GovernanceLotteryUpgrade is
         address[] memory from,
         uint256 proposalId,
         bool support
-    ) external virtual override gasCompensation(voter, !compensatedForVote[voter][proposalId], 0) {
-        compensatedForVote[voter][proposalId] = true;
+    )
+        external
+        virtual
+        override
+        gasCompensation(
+            msg.sender,
+            !compensatedForVote[msg.sender][proposalId],
+            0
+        )
+    {
+        compensatedForVote[msg.sender][proposalId] = true;
         for (uint256 i = 0; i < from.length; i++) {
             require(
                 delegatedTo[from[i]] == msg.sender,
                 "Governance: not authorized"
             );
             super._castVote(from[i], proposalId, support);
+            _registerAccountWithLottery(proposalId, from[i]);
         }
         if (lockedBalance[msg.sender] > 0) {
             super._castVote(msg.sender, proposalId, support);
+            _registerAccountWithLottery(proposalId, msg.sender);
         }
     }
 
-    function claimRewards(uint256 proposalId) external virtual override {
-        GovernanceLottery.claimRewards(proposalId, address(torn), msg.sender);
+    function claimRewards(
+        uint256 proposalId,
+        uint256 voteIndex,
+        uint256 numberIndex
+    ) external {
+        GovernanceLottery.claimRewards(
+            proposalId,
+            voteIndex,
+            numberIndex,
+            msg.sender,
+            address(torn)
+        );
+    }
+
+    function hasAccountVoted(uint256 proposalId, address account)
+        external
+        view
+        returns (bool)
+    {
+        return proposals[proposalId].receipts[account].hasVoted;
     }
 
     /// @notice checker for success on deployment
@@ -97,10 +132,20 @@ contract GovernanceLotteryUpgrade is
     {
         compensatedForVote[voter][proposalId] = true;
         super._castVote(voter, proposalId, support);
-        _errorHandledRegisterAccountWithLottery(
-            proposalId,
-            voter,
-            proposals[proposalId].receipts[voter].votes
-        );
+        _registerAccountWithLottery(proposalId, voter);
+    }
+
+    function _registerAccountWithLottery(uint256 proposalId, address account)
+        private
+    {
+        try
+            GovernanceLottery.registerAccountWithLottery(
+                proposalId,
+                account,
+                uint96(proposals[proposalId].receipts[account].votes)
+            )
+        {} catch {
+            emit RegisterAccountReverted(proposalId, account);
+        }
     }
 }

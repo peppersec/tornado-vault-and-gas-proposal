@@ -36,6 +36,8 @@ contract LotteryAndPeriodProposal {
             "Multisig address wrong"
         );
 
+        newGovernanceContract.deployLottery();
+
         require(
             stringCompare(newGovernanceContract.version(), "2.lottery-upgrade"),
             "Something went wrong after proxy logic upgrade failed!"
