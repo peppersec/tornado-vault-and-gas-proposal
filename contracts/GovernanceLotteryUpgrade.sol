@@ -92,14 +92,10 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     }
 
     function finishProposalPreparation(uint256 proposalId)
-        external 
-	gasCompensation(
-		msg.sender,
-		true,
-		100000
-	)
+        external
+        gasCompensation(msg.sender, true, 100000)
     {
-	GovernanceLottery.finishProposalPreparation(proposalId);
+        GovernanceLottery.finishProposalPreparation(proposalId);
     }
 
     function claimRewards(

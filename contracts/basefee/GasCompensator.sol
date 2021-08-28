@@ -44,6 +44,7 @@ abstract contract GasCompensator is BASEFEE_PROXY {
     function depositEthereumForGasCompensations() external payable virtual {}
 
     function pauseOrUnpauseGasCompensations() external virtual;
+
     function setGasCompensationsLimit(uint256 _gasCompensationsLimit)
         external
         virtual;
