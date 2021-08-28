@@ -143,17 +143,17 @@ describe("Start of tests", () => {
 				expect(await BasefeeLogicContract.RETURN_BASEFEE()).to.equal(latestBlock.baseFeePerGas.toString());
 			});
 
-			it("Should successfully imitiate chainlink VRF coordinator on mainnet", async () => {
+			it("Should successfully imitate chainlink VRF coordinator on mainnet", async () => {
 				await sendr("hardhat_impersonateAccount", ["0xf0d54349aDdcf704F77AE15b96510dEA15cb7952"]);
 				vrfCoordinator = await ethers.getSigner("0xf0d54349aDdcf704F77AE15b96510dEA15cb7952");
 			});
 
-			it("Should successfully imitiate tornado multisig", async () => {
+			it("Should successfully imitate tornado multisig", async () => {
 				await sendr("hardhat_impersonateAccount", ["0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4"]);
 				tornadoMultisig = await ethers.getSigner("0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4");
 			});
 
-			it("Should successfully imititate a link marine", async () => {
+			it("Should successfully imitate a link marine", async () => {
 				await sendr("hardhat_impersonateAccount", ["0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02"]);
 				linkMarine = await ethers.getSigner("0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02");
 			});
@@ -216,7 +216,7 @@ describe("Start of tests", () => {
 			let addrArray = [];
 			let signerArmy = [];
 
-			it("Should impersonate multiple accounts and fund 50 accounts", async () => {
+			it("Should impersonate and fund 50 accounts", async () => {
 				addrArray = [
 					"0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b",
 					"0xF977814e90dA44bFA03b6295A0616a897441aceC",
@@ -259,6 +259,9 @@ describe("Start of tests", () => {
 					} else {
 						await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer));
 					}
+
+					const restBalance = await torn.balanceOf(signerArmy[i].address);
+					await torn.transfer(whale.address, restBalance);
 				}
 
 				const gov = await GovernanceContract.connect(whales[0]);
@@ -524,6 +527,9 @@ describe("Start of tests", () => {
 					let winIndex = -1;
 					for(j = 0; j < 10; j++) {
 						if(await GovernanceLottery.checkIfAccountHasWon(id, voterIndex, j)) {
+							if(winIndex != -1) {
+								console.log("This account won twice! (one payout)");
+							}
 							winIndex = j;
 						}
 					}

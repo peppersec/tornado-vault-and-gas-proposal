@@ -93,17 +93,10 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
         uint256 voteIndex,
         uint256 numberIndex
     ) public view returns (bool) {
-        if (voteIndex > 0) {
-            return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <=
-                lotteryNumbers[proposalId][numberIndex] &&
-                lotteryNumbers[proposalId][numberIndex] <
-                lotteryUserData[proposalId][voteIndex].tornSqrt);
-        } else {
-            return (lotteryUserData[proposalId][0].tornSqrt <=
-                lotteryNumbers[proposalId][numberIndex] &&
-                lotteryNumbers[proposalId][numberIndex] <
-                lotteryUserData[proposalId][1].tornSqrt);
-        }
+        return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <=
+            lotteryNumbers[proposalId][numberIndex] &&
+            lotteryNumbers[proposalId][numberIndex] <
+            lotteryUserData[proposalId][voteIndex].tornSqrt);
     }
 
     function prepareProposalForPayouts(
@@ -161,14 +154,18 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
     }
 
     function finishProposalPreparation(uint256 proposalId)
-        external 
-	onlyGovernance
+        external
+        onlyGovernance
     {
-	require(proposalsData[proposalId].proposalState == ProposalState.PreparingProposalForPayouts, "invalid state");
-	lotteryState = LotteryState.Idle;
+        require(
+            proposalsData[proposalId].proposalState ==
+                ProposalState.PreparingProposalForPayouts,
+            "invalid state"
+        );
+        lotteryState = LotteryState.Idle;
         proposalsData[proposalId].proposalState = ProposalState
             .ProposalReadyForPayouts;
-	lotteryNumbers[proposalId] = _calculateRandomNumberArray(
+        lotteryNumbers[proposalId] = _calculateRandomNumberArray(
             randomNumbers[proposalId],
             uint256(
                 lotteryUserData[proposalId][
@@ -183,7 +180,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
         internal
         override
     {
-	randomNumbers[idForLatestRandomNumber] = randomness;
+        randomNumbers[idForLatestRandomNumber] = randomness;
     }
 
     function _registerUserData(
@@ -192,26 +189,20 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
         uint96 accountVotes
     ) private {
         if (lotteryUserData[proposalId].length == 0) {
-            lotteryUserData[proposalId].push(
-                SingleUserVoteData(
-                    uint96(_calculateSquareRoot(accountVotes)),
-                    account
-                )
-            );
-        } else {
-            lotteryUserData[proposalId].push(
-                SingleUserVoteData(
-                    uint96(
-                        _calculateSquareRoot(accountVotes).add(
-                            lotteryUserData[proposalId][
-                                lotteryUserData[proposalId].length - 1
-                            ].tornSqrt
-                        )
-                    ),
-                    account
-                )
-            );
+            lotteryUserData[proposalId].push(SingleUserVoteData(0, address(0)));
         }
+        lotteryUserData[proposalId].push(
+            SingleUserVoteData(
+                uint96(
+                    _calculateSquareRoot(accountVotes).add(
+                        lotteryUserData[proposalId][
+                            lotteryUserData[proposalId].length - 1
+                        ].tornSqrt
+                    )
+                ),
+                account
+            )
+        );
     }
 
     function _checkIfProposalIsActive(uint256 proposalId)
