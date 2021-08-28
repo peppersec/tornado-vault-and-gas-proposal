@@ -2,7 +2,6 @@
 
 pragma solidity ^0.6.12;
 
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {BASEFEE_PROXY} from "./BASEFEE_PROXY.sol";
 import {SafeMath} from "@openzeppelin/contracts/math/SafeMath.sol";
 
