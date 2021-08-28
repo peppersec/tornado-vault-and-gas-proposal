@@ -517,10 +517,7 @@ describe("Start of tests", () => {
 				}
 				console.log("--------------------------------------------------","\n");
 
-				for(i = 0; i < 50; i++) {
-
-				}
-
+				let claimGasSum=BigNumber.from(0);
 				for (i = 0; i < 50; i++) {
 					let gov = await GovernanceContract.connect(signerArmy[i]);
 					const voterIndex = await GovernanceLottery.findUserIndex(id, signerArmy[i].address);
@@ -531,10 +528,13 @@ describe("Start of tests", () => {
 						}
 					}
 					if(winIndex >= 0) {
-						await expect(gov.claimRewards(id, voterIndex, winIndex)).to.not.be.reverted;
+						const claimResponse = await gov.claimRewards(id, voterIndex, winIndex);
+						claimGasSum = claimGasSum.add((await claimResponse.wait()).cumulativeGasUsed);
 						console.log(`Account ${i} has won: `, (await TornToken.balanceOf(signerArmy[i].address)).toString(), " With number index: ", winIndex);
 					}
 				}
+				claimGasSum = claimGasSum.div(50);
+				console.log("\n", "Claim function gas use on average: ", claimGasSum.toString());
 			});
 		});
 	});
