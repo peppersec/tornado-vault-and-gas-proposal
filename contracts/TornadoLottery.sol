@@ -160,22 +160,30 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
         }
     }
 
-    function fulfillRandomness(bytes32 requestId, uint256 randomness)
-        internal
-        override
+    function finishProposalPreparation(uint256 proposalId)
+        external 
+	onlyGovernance
     {
-        lotteryState = LotteryState.Idle;
-        proposalsData[idForLatestRandomNumber].proposalState = ProposalState
+	require(proposalsData[proposalId].proposalState == ProposalState.PreparingProposalForPayouts, "invalid state");
+	lotteryState = LotteryState.Idle;
+        proposalsData[proposalId].proposalState = ProposalState
             .ProposalReadyForPayouts;
-        lotteryNumbers[idForLatestRandomNumber] = _calculateRandomNumberArray(
-            randomness,
+	lotteryNumbers[proposalId] = _calculateRandomNumberArray(
+            randomNumbers[proposalId],
             uint256(
-                lotteryUserData[idForLatestRandomNumber][
-                    lotteryUserData[idForLatestRandomNumber].length - 1
+                lotteryUserData[proposalId][
+                    lotteryUserData[proposalId].length - 1
                 ].tornSqrt
             ),
             LOTTERY_WINNERS
         );
+    }
+
+    function fulfillRandomness(bytes32 requestId, uint256 randomness)
+        internal
+        override
+    {
+	randomNumbers[idForLatestRandomNumber] = randomness;
     }
 
     function _registerUserData(

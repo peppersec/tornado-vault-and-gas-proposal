@@ -17,7 +17,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2000,
+            runs: 1000,
           },
           outputSelection: {
             "*": {
@@ -31,7 +31,7 @@ module.exports = {
         settings: {
           optimizer: {
             enabled: true,
-            runs: 2000,
+            runs: 1000,
           },
           outputSelection: {
             "*": {

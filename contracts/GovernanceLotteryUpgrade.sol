@@ -91,6 +91,17 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
         }
     }
 
+    function finishProposalPreparation(uint256 proposalId)
+        external 
+	gasCompensation(
+		msg.sender,
+		true,
+		100000
+	)
+    {
+	GovernanceLottery.finishProposalPreparation(proposalId);
+    }
+
     function claimRewards(
         uint256 proposalId,
         uint256 voteIndex,
@@ -127,7 +138,7 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
         internal
         virtual
         override
-        gasCompensation(voter, !compensatedForVote[voter][proposalId], 0)
+        gasCompensation(voter, !compensatedForVote[voter][proposalId], 210000)
     {
         compensatedForVote[voter][proposalId] = true;
         super._castVote(voter, proposalId, support);

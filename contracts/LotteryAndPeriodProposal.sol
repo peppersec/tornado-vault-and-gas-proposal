@@ -39,22 +39,14 @@ contract LotteryAndPeriodProposal {
         require(
             newGovernanceContract.deployLottery() &&
                 newGovernanceContract.deployVault(),
-            "vault or lottery failed deplo"
-        );
-
-        require(
-            stringCompare(
-                newGovernanceContract.version(),
-                "2.lottery-and-vault-upgrade"
-            ),
-            "Something went wrong after proxy logic upgrade failed!"
+            "failed deplo vault/lottery"
         );
 
         newGovernanceContract.setVotingPeriod(votingPeriod);
 
         require(
             newGovernanceContract.VOTING_PERIOD() == votingPeriod,
-            "Voting period change failed!"
+            "Voting period failed!"
         );
     }
 

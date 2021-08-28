@@ -200,6 +200,8 @@ describe("Start of tests", () => {
 					(await GovernanceContract.VOTING_PERIOD())
 						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
 				);
+
+				await dore.sendTransaction({to:whale.address, value: pE(10)})
 				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
 				GovernanceContract = await ethers.getContractAt("GovernanceLotteryUpgrade", GovernanceContract.address);
 
@@ -210,43 +212,10 @@ describe("Start of tests", () => {
 		});
 
 		describe("Mock rewards + proposal distribution with multiple accounts", async () => {
-			it("Should start another proposal", async () => {
-				ProposalContract = await MockProposalFactory.deploy();
-				let response, id, state;
-				[response, id, state] = await propose([whale, ProposalContract, "mock1"]);
-
-				const { events } = await response.wait();
-				const args = events.find(({ event }) => event == "ProposalCreated").args
-				expect(args.id).to.be.equal(id);
-				expect(args.proposer).to.be.equal(whale.address);
-				expect(args.target).to.be.equal(ProposalContract.address);
-				expect(args.description).to.be.equal("mock1");
-				expect(state).to.be.equal(ProposalState.Pending);
-
-				await minewait(
-					(await GovernanceContract.VOTING_DELAY())
-						.add(1)
-						.toNumber()
-				);
-				clog("Whale address: ", whale.address, " Balance locked: ", (await GovernanceContract.lockedBalance(whale.address)).toString());
-				GovernanceContract = await GovernanceContract.connect(whale);
-				await expect(GovernanceContract.castVote(id, true)).to.not.be.reverted;
-				state = await GovernanceContract.state(id);
-				expect(state).to.be.equal(ProposalState.Active);
-				await minewait(
-					(await GovernanceContract.VOTING_PERIOD())
-						.add(await GovernanceContract.EXECUTION_DELAY()).add(86400).toNumber()
-				);
-
-				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
-				clog((await GovernanceContract.VOTING_PERIOD()).toString());
-
-				await sendr("evm_revert", [snapshotIdArray[1]]);
-				snapshotIdArray[1] = await sendr("evm_snapshot", []);
-			});
 
 			let addrArray = [];
 			let signerArmy = [];
+
 			it("Should impersonate multiple accounts and fund 50 accounts", async () => {
 				addrArray = [
 					"0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b",
@@ -274,7 +243,7 @@ describe("Start of tests", () => {
 				for (i = 0; i < 50; i++) {
 					const accAddress = accountList[i+7].checksumAddress;
 					await sendr("hardhat_impersonateAccount", [accAddress]);
-					console.log("At index: ", i);
+
 					signerArmy[i] = await ethers.getSigner(accAddress);
 					const tx = { to: signerArmy[i].address, value: pE(1)};
 
@@ -299,7 +268,7 @@ describe("Start of tests", () => {
 				ProposalContract = await MockProposalFactory.deploy();
 				const lotteryAddress = (await GovernanceContract.GovernanceLottery());
 				const GovernanceLottery = await ethers.getContractAt("TornadoLottery", lotteryAddress);
-				clog("Balance of governance contract: ", (await TornToken.balanceOf(GovernanceContract.address)).toString());
+				clog("Torn balance of governance contract: ", (await TornToken.balanceOf(GovernanceContract.address)).toString());
 
 				////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
 				let response, id, state;
@@ -326,18 +295,46 @@ describe("Start of tests", () => {
 				/////////////////// PREPARE MULTISIG AND COMPENSATIONS
 				let multiGov = await GovernanceContract.connect(tornadoMultisig);
 				let multiTorn = await TornToken.connect(tornadoMultisig);
+				await dore.sendTransaction({to:tornadoMultisig.address, value:pE(1)})
+
 				await expect(multiGov.setGasCompensationsLimit(pE(500))).to.not.be.reverted;
 
+
 				///////////////////////////// VOTE ////////////////////////////
+				const overrides = {
+					gasPrice: BigNumber.from(5)
+				}
+
+				let signerArmyBalanceInitial = [];
+				let signerArmyBalanceVoted = [];
+				let gasUsedArray = [];
+
+				const gov1 = await GovernanceContract.connect(dore);
+				const overrides1 = {
+					value: pE(50)
+				}
+				await gov1.depositEthereumForGasCompensations(overrides1);
+
+				snapshotIdArray[3] = await sendr("evm_snapshot", []);
+
 				for (i = 0; i < 50; i++) {
 					let gov = await GovernanceContract.connect(signerArmy[i]);
 					let randN = rand(i * 5, i * 6);
 					randN = randN % 2;
+					let response;
+
+					signerArmyBalanceInitial[i] = await signerArmy[i].getBalance();
+
 					if (randN > 0) {
-						await expect(gov.castVote(id, true)).to.not.be.reverted;
+						response = await gov.castVote(id, true, overrides);
 					} else {
-						await expect(gov.castVote(id, false)).to.not.be.reverted;
+						response = await gov.castVote(id, false, overrides);
 					}
+
+					signerArmyBalanceVoted[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance());
+
+					const receipt = await response.wait();
+					gasUsedArray[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString();
 				}
 
 				//////////////////////////////// GET STATE ///////////////////////////////
@@ -345,7 +342,9 @@ describe("Start of tests", () => {
 				expect(state).to.be.equal(ProposalState.Active);
 
 				///////////////////////////// VOTER INFO ///////////////////////////////////
-    				for (i = 0; i < 50; i+=5) {
+				// (uncomment for more data)
+				/*
+				for (i = 0; i < 50; i+=5) {
 					const j = BigNumber.from(i);
 					console.log(
 						`Voter ${i} sqrt: `,
@@ -360,31 +359,79 @@ describe("Start of tests", () => {
 						((await GovernanceLottery.lotteryUserData(id,j.add(4)))[0]).toString(),
 						"\n",
 					)
-    				}
+				}
 
 				for (i = 0; i < 50; i+=5) {
 					console.log(
-						`Voter ${i} sqrt: `,
-						((await signerArmy[i].getBalance()).sub(pE(1))).toString(),
-						`Voter ${i+1} sqrt: `,
-						((await signerArmy[i+1].getBalance()).sub(pE(1))).toString(),
-						`Voter ${i+2} sqrt: `,
-						((await signerArmy[i+2].getBalance()).sub(pE(1))).toString(),
-						`Voter ${i+3} sqrt: `,
-						((await signerArmy[i+3].getBalance()).sub(pE(1))).toString(),
-						`Voter ${i+4} sqrt: `,
-						((await signerArmy[i+4].getBalance()).sub(pE(1))).toString(),
+						`Voter ${i} ether used: `,
+						gasUsedArray[i],
+						`Voter ${i+1} ether used: `,
+						gasUsedArray[i+1],
+						`Voter ${i+2} ether used: `,
+						gasUsedArray[i+2],
+						`Voter ${i+3} ether used: `,
+						gasUsedArray[i+3],
+						`Voter ${i+4} ether used: `,
+						gasUsedArray[i+4],
 						"\n",
 					)
-    				}
+	   			}
+				*/
 
-				/////////////////////////////// PROPOSAL STATE /////////////////////////////////
+				await sendr("evm_revert", [snapshotIdArray[3]]);
+
+				///////////////////////////////// VOTE WITHOUT COMPENSATION //////////////////////////////////////
+				let etherUsedWithoutCompensation = [];
+				await multiGov.pauseOrUnpauseGasCompensations();
+
+				for (i = 0; i < 50; i++) {
+					let gov = await GovernanceContract.connect(signerArmy[i]);
+					let randN = rand(i * 5, i * 6);
+					randN = randN % 2;
+					let response;
+
+					if (randN > 0) {
+						response = await gov.castVote(id, true, overrides);
+					} else {
+						response = await gov.castVote(id, false, overrides);
+					}
+
+					const receipt = await response.wait();
+					etherUsedWithoutCompensation[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString();
+				}
+
+				await multiGov.pauseOrUnpauseGasCompensations();
+
+				//////////////////////////////// GET STATE ///////////////////////////////
+				state = await GovernanceContract.state(id);
+				expect(state).to.be.equal(ProposalState.Active);
+
+				///////////////////////////// VOTER INFO ///////////////////////////////////
+				let etherUsedNoComp = BigNumber.from(0);
+				let etherUsed = BigNumber.from(0);
+				let etherEndDiff = BigNumber.from(0);
+
+				for(i = 0; i < 50; i++) {
+					etherUsed = etherUsed.add(BigNumber.from(gasUsedArray[i]));
+					etherUsedNoComp = etherUsedNoComp.add(BigNumber.from(etherUsedWithoutCompensation[i]));
+					etherEndDiff = etherEndDiff.add(signerArmyBalanceVoted[i]);
+				}
+
+				etherUsedNoComp = etherUsedNoComp.div(50);
+				etherUsed = etherUsed.div(50);
+				etherEndDiff = etherEndDiff.div(50);
+
 				console.log(
-					"--------------------------------------\n",
-					"Proposal data: \n",
-					"For votes: ", ((await GovernanceContract.proposals(id))[4]).toString(), "\n",
-					"Against votes: ", ((await GovernanceContract.proposals(id))[5]).toString(), "\n",
-					"--------------------------------------\n",
+					"\n","----------------------------CAST VOTE INFO------------------------", "\n",
+					"Ether use without compensation average: ", etherUsedNoComp.toString(), "\n",
+					"Ether use average: ", etherUsed.toString(), "\n",
+					"Ether diff average: ", etherUsed.sub(etherUsedNoComp).toString(), "\n",
+					"Ether compensated in average: ", etherUsed.sub(etherEndDiff).toString(), "\n",
+					"Gas use average: ", etherUsed.div(5).toString(), "\n",
+					"Gas use without compensation average: ", etherUsedNoComp.div(5).toString(), "\n",
+					"Gas diff average: ", etherUsed.sub(etherUsedNoComp).div(5).toString(), "\n",
+					"Gas compensated in average: ", etherUsed.sub(etherEndDiff).div(5).toString(), "\n",
+					"--------------------------------------------------------------------", "\n"
 				)
 
 				/////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
@@ -442,7 +489,21 @@ describe("Start of tests", () => {
 					BigNumber.from(0))
 				));
 
-				await expect(vrfGov.rawFulfillRandomness(rId, someHex[1])).to.not.be.reverted;
+				const rfrresponse = await vrfGov.rawFulfillRandomness(rId, someHex[1]);
+				const rfrreceipt = await rfrresponse.wait();
+
+				GovernanceContract = await GovernanceContract.connect(whale);
+
+				const whaleBalance1 = await whale.getBalance();
+
+				const fpresponse = await GovernanceContract.finishProposalPreparation(id, overrides);
+				const fpreceipt = await fpresponse.wait();
+
+				const whaleBalance2 = await whale.getBalance();
+
+				console.log("\n", "Finish proposal gas used: ", fpreceipt.cumulativeGasUsed.toString());
+				console.log("RFR gas used: ", rfrreceipt.cumulativeGasUsed.toString());
+				console.log("Whale gas used: " , whaleBalance1.sub(whaleBalance2).div(5).toString(),"\n")
 
 				expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(2);
 
@@ -450,7 +511,7 @@ describe("Start of tests", () => {
 				for(let i =0; i < 10; i++) {
 					console.log((await GovernanceLottery.lotteryNumbers(id,i)).toString());
 				}
-				console.log("--------------------------------------------------");
+				console.log("--------------------------------------------------","\n");
 
 				for(i = 0; i < 50; i++) {
 
