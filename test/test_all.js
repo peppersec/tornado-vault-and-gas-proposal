@@ -254,7 +254,11 @@ describe("Start of tests", () => {
 
 					await expect(torn.approve(GovernanceContract.address, toTransfer)).to.not.be.reverted;
 					const gov = await GovernanceContract.connect(signerArmy[i]);
-					await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer));
+					if(i > 20) {
+						await expect(() => gov.lockWithApproval(toTransfer.div(i))).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer.div(i)));
+					} else {
+						await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer));
+					}
 				}
 
 				const gov = await GovernanceContract.connect(whales[0]);
