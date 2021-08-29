@@ -14,11 +14,7 @@ contract LotteryProposalUpgradesHelper is ProposalUpgradesHelperBase {
     }
 
     function nestedUpgradeGovernance() external virtual override {
-        GovernanceLotteryUpgrade newGovernanceContract = GovernanceLotteryUpgrade(
-                upgradeGovernanceLogicAndReturnAddress(
-                    constructUpgradedGovernance(basefeeLogic)
-                )
-            ); // basefeeLogic is stored in an immutable variable in BASEFEE_PROXY
+        upgradeGovernanceLogic(constructUpgradedGovernance(basefeeLogic));
     }
 
     function constructUpgradedGovernance(address _basefeeLogic)

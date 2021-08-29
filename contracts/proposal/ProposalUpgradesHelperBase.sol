@@ -10,12 +10,9 @@ import {ImmutableGovernanceInformation} from "./ImmutableGovernanceInformation.s
 abstract contract ProposalUpgradesHelperBase is ImmutableGovernanceInformation {
     function nestedUpgradeGovernance() external virtual;
 
-    function upgradeGovernanceLogicAndReturnAddress(Governance _logicAddress)
-        public
-        returns (address payable payableGovernance)
-    {
-        payableGovernance = returnPayableGovernance();
-        LoopbackProxy(payableGovernance).upgradeTo(address(_logicAddress));
-        return payableGovernance;
+    function upgradeGovernanceLogic(Governance _logicAddress) public {
+        LoopbackProxy(returnPayableGovernance()).upgradeTo(
+            address(_logicAddress)
+        );
     }
 }

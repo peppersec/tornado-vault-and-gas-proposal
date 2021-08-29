@@ -11,7 +11,7 @@ contract ImmutableGovernanceInformation {
     address public constant TornTokenAddress =
         address(0x77777FeDdddFfC19Ff86DB637967013e6C6A116C);
 
-    function returnPayableGovernance() public returns (address payable) {
+    function returnPayableGovernance() public pure returns (address payable) {
         return payable(GovernanceAddress);
     }
 }

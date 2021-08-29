@@ -23,12 +23,15 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     }
 
     function executeProposal() external {
-        ProposalUpgradesHelperAddress.delegatecall(
+        (bool success, ) = ProposalUpgradesHelperAddress.delegatecall(
             abi.encodeWithSignature("nestedUpgradeGovernance()")
         );
-        ProposalUpgradesExtrasAddress.delegatecall(
+        require(success, "upgrade failed");
+
+        (success, ) = ProposalUpgradesExtrasAddress.delegatecall(
             abi.encodeWithSignature("nestedFunctionsGovernance()")
         );
+        require(success, "functions failed");
 
         TornadoAuctionHandler auctionStarter = new TornadoAuctionHandler();
         IERC20(TornTokenAddress).transfer(address(auctionStarter), 100e18);
