@@ -1,11 +1,17 @@
 // SPDX-License-Identifier: MIT
 
 pragma solidity ^0.6.12;
+pragma experimental ABIEncoderV2;
 
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {GovernanceLotteryUpgrade} from "./GovernanceLotteryUpgrade.sol";
-import {LoopbackProxy} from "../tornado-governance/contracts/LoopbackProxy.sol";
+import {ProposalLibrary} from "./libraries/ProposalLibrary.sol";
+import {LotteryProposalSpecific} from "./libraries/LotteryProposalSpecific.sol";
+import {TornadoAuctionHandler} from "./auction/TornadoAuctionHandler.sol";
 
 contract LotteryAndPeriodProposal {
+    using ProposalLibrary for GovernanceLotteryUpgrade;
+
     address public constant GovernanceAddress =
         address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
     address public constant TornadoMultisig =
@@ -19,47 +25,30 @@ contract LotteryAndPeriodProposal {
     }
 
     function executeProposal() external {
-        GovernanceLotteryUpgrade newGovernanceContract = new GovernanceLotteryUpgrade(
-                basefeeLogic
+        GovernanceLotteryUpgrade newGovernanceContract = GovernanceLotteryUpgrade(
+                (new GovernanceLotteryUpgrade(basefeeLogic))
+                    .upgradeGovernanceLogicAndReturnAddress(GovernanceAddress)
             ); // basefeeLogic is stored in an immutable variable in BASEFEE_PROXY
 
-        LoopbackProxy(payable(address(this))).upgradeTo(
-            address(newGovernanceContract)
+        newGovernanceContract.runCodesAndRevertOnFail(LotteryProposalSpecific.enpackSetupCodes(votingPeriod));
+        newGovernanceContract.compareValuesWithCodesAndRevertOnFail(
+            LotteryProposalSpecific.enpackCheckCodes(),
+            LotteryProposalSpecific.enpackCheckArgs(votingPeriod, TornadoMultisig)
         );
 
-        newGovernanceContract = GovernanceLotteryUpgrade(
-            payable(address(this))
+        TornadoAuctionHandler auctionStarter = new TornadoAuctionHandler();
+        IERC20(newGovernanceContract.torn()).transfer(
+            address(auctionStarter),
+            100e18
         );
 
-        require(
-            newGovernanceContract.TornadoMultisig() == TornadoMultisig,
-            "Multisig address wrong"
+        // EXAMPLE NUMBERS
+        auctionStarter.initializeAuction(
+            1631743200,
+            100 ether,
+            151e16,
+            10 ether,
+            0
         );
-
-        require(
-            newGovernanceContract.deployLottery() &&
-                newGovernanceContract.deployVault(),
-            "failed deplo vault/lottery"
-        );
-
-        newGovernanceContract.setVotingPeriod(votingPeriod);
-
-        require(
-            newGovernanceContract.VOTING_PERIOD() == votingPeriod,
-            "Voting period failed!"
-        );
-    }
-
-    /// @notice This function compares two strings by hashing them to comparable format
-    /// @param a first string to compare
-    /// @param b second string to compare
-    /// @return true if a == b, false otherwise
-    function stringCompare(string memory a, string memory b)
-        private
-        pure
-        returns (bool)
-    {
-        return (keccak256(abi.encodePacked((a))) ==
-            keccak256(abi.encodePacked((b))));
     }
 }

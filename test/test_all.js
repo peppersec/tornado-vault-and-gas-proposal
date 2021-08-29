@@ -19,6 +19,11 @@ describe("Start of tests", () => {
 	let VRFRequestHelperFactory;
 	let VRFRequestHelper;
 
+	let ProposalLibraryFactory;
+	let LPSFactory;
+	let ProposalLibrary;
+	let LPSLibrary;
+
 	let vrfCoordinator;
 	let tornadoMultisig;
 
@@ -101,11 +106,23 @@ describe("Start of tests", () => {
 		BasefeeLogicFactory = await ethers.getContractFactory("contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC");
 		BasefeeLogicContract = await BasefeeLogicFactory.deploy();
 
+		ProposalLibraryFactory = await ethers.getContractFactory("ProposalLibrary");
+		ProposalLibrary = await ProposalLibraryFactory.deploy();
+
+		LPSFactory = await ethers.getContractFactory("LotteryProposalSpecific");
+		LPSLibrary = await LPSFactory.deploy();
+
 		MockProposalFactory = await ethers.getContractFactory("MockProposal1");
 
-		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal");
+		ProposalFactory = await ethers.getContractFactory("LotteryAndPeriodProposal", {
+			libraries: {
+				ProposalLibrary: ProposalLibrary.address,
+				LotteryProposalSpecific: LPSLibrary.address
+			},
+		});
 
 		ProposalContract = await ProposalFactory.deploy(260000, BasefeeLogicContract.address);
+		console.log(ProposalContract);
 
 		VRFRequestHelperFactory = await ethers.getContractFactory("VRFRequestHelper");
 		VRFRequestHelper = await VRFRequestHelperFactory.deploy();
