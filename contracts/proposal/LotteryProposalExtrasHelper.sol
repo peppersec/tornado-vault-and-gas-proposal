@@ -3,8 +3,25 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-library LotteryProposalSpecific {
-    function enpackSetupCodes(uint256 votingPeriod) public pure returns (bytes[] memory codes) {
+import {ProposalExtrasHelperBase} from "./ProposalExtrasHelperBase.sol";
+
+contract LotteryProposalExtrasHelper is ProposalExtrasHelperBase {
+    uint256 public immutable votingPeriod;
+
+    constructor(uint256 _votingPeriod) public {
+        votingPeriod = _votingPeriod;
+    }
+
+    function nestedFunctionsGovernance() external virtual override {
+        runCodesAndRevertOnFail(enpackSetupCodes());
+
+        compareValuesWithCodesAndRevertOnFail(
+            enpackCheckCodes(),
+            enpackCheckArgs()
+        );
+    }
+
+    function enpackSetupCodes() public view returns (bytes[] memory codes) {
         codes = new bytes[](3);
         codes[0] = abi.encodeWithSignature("deployLottery()");
         codes[1] = abi.encodeWithSignature("deployVault()");
@@ -20,7 +37,7 @@ library LotteryProposalSpecific {
         codes[1] = abi.encodeWithSignature("TornadoMultisig()");
     }
 
-    function enpackCheckArgs(uint256 votingPeriod, address TornadoMultisig) public pure returns (bytes32[] memory args) {
+    function enpackCheckArgs() public view returns (bytes32[] memory args) {
         args = new bytes32[](2);
         args[0] = keccak256(abi.encode(votingPeriod));
         args[1] = keccak256(abi.encode(TornadoMultisig));
