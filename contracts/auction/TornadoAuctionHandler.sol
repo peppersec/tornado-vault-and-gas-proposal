@@ -13,6 +13,13 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
         address(0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101);
     address public constant WETHAddress =
         address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+    uint256 public auctionCounter;
+
+    event TornadoAuctionHandlerCreated(address _handler);
+
+    constructor() public {
+        emit TornadoAuctionHandlerCreated(address(this));
+    }
 
     modifier onlyGovernance() {
         require(msg.sender == GovernanceAddress, "only gov");
@@ -36,7 +43,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
             _auctionedSellAmount
         );
 
-        IEasyAuction(EasyAuctionAddress).initiateAuction(
+        auctionCounter = IEasyAuction(EasyAuctionAddress).initiateAuction(
             IERC20(TornTokenAddress),
             IERC20(WETHAddress),
             0,
@@ -59,5 +66,9 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
         IGovernanceDepositInterface(GovernanceAddress)
             .depositEthereumForGasCompensations
             .value(address(this).balance)();
+    }
+
+    function getAuctionCounter() external view returns (uint256) {
+        return auctionCounter;
     }
 }

@@ -31,15 +31,16 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
         );
         require(success, "functions failed");
 
-        TornadoAuctionHandler auctionStarter = new TornadoAuctionHandler();
-        IERC20(TornTokenAddress).transfer(address(auctionStarter), 100e18);
+        TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
+
+        IERC20(TornTokenAddress).transfer(address(auctionHandler), 100e18);
 
         // EXAMPLE NUMBERS
-        auctionStarter.initializeAuction(
+        auctionHandler.initializeAuction(
             1631743200,
             100 ether,
             151e16,
-            10 ether,
+            1 ether,
             0
         );
     }

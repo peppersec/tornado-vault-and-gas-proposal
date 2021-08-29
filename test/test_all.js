@@ -5,35 +5,48 @@ const { propose } = require("../scripts/helper/propose_proposal.js");
 const testcases = require("@ethersproject/testcases");
 const seedbase = require("../resources/hdnode.json");
 const accountList = require("../resources/accounts.json");
-const mockBasefeeArtifacts = require("../artifacts/contracts/testing/BASEFEE_LOGIC.sol/BASEFEE_LOGIC.json");
-const mockBasefeeBytecode = mockBasefeeArtifacts.bytecode;
+const EasyAuctionJson = require("@gnosis.pm/ido-contracts/build/artifacts/contracts/EasyAuction.sol/EasyAuction.json");
 
 describe("Start of tests", () => {
-	let ProposalFactory;
-	let ProposalContract;
+
+	///// CONSTANTS
+	let proxy_address = "0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce";
+	let someHex = [];
+	someHex[0] = BigNumber.from("0xfe16f5da5d734ce11cbb97f30ed3e5c3caccee9abd8d8e189adefcb4f9371d23");
+	someHex[1] = BigNumber.from("0x639F0F6557EB7A959E2382B9583601442514DF8A951F24CBCE889B1F73B76146");
+	someHex[2] = BigNumber.from("0x6F8ECDC9A8F8A8FCCA2054FE558D82164B0C0433A7F75E22B33165D919D2C4DC");
+
+	///////////////////////////// CONTRACTS
 	let GovernanceContract;
 	let TornToken;
+	let WETH;
+	let TornadoAuctionHandler;
+	let GnosisEasyAuction;
+
+	///////////////// PROPOSAL & DEPENDENCIES
 	let BasefeeLogicFactory;
 	let BasefeeLogicContract;
-	let ChainlinkToken;
-	let VRFRequestHelperFactory;
-	let VRFRequestHelper;
-
 	let LPEHelperFactory;
 	let LPEHelper;
 	let LPUHelperFactory;
 	let LPUHelper;
+	let ProposalFactory;
+	let ProposalContract;
 
-	let ProposalLibraryFactory;
-	let ProposalLibrary;
+	///////////////////// CHAINLINK
+	let ChainlinkToken;
+	let VRFRequestHelperFactory;
+	let VRFRequestHelper;
 
+	//////////////////// IMPERSONATED
 	let vrfCoordinator;
 	let tornadoMultisig;
+	let linkMarine;
 
+	//////////////////////////////// MOCK
 	let MockProposalFactory;
 
-	let proxy_address = "0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce";
-
+	/////// GOV PARAMS
 	let votingDelay;
 	let votingPeriod;
 	let proposalStartTime;
@@ -45,19 +58,23 @@ describe("Start of tests", () => {
 	let proposalThreshold;
 	let closingPeriod;
 	let voteExtendTime;
+	const ProposalState = {
+		Pending: 0,
+		Active: 1,
+		Defeated: 2,
+		Timelocked: 3,
+		AwaitingExecution: 4,
+		Executed: 5,
+		Expired: 6,
+	}
 
+	///// ACCOUNTS
 	let dore;
 	let whale;
-	let linkMarine;
-
 	let signerArray = [];
 	let whales = [];
 
-	let someHex = [];
-
-	someHex[0] = BigNumber.from("0xfe16f5da5d734ce11cbb97f30ed3e5c3caccee9abd8d8e189adefcb4f9371d23");
-	someHex[1] = BigNumber.from("0x639F0F6557EB7A959E2382B9583601442514DF8A951F24CBCE889B1F73B76146");
-	someHex[2] = BigNumber.from("0x6F8ECDC9A8F8A8FCCA2054FE558D82164B0C0433A7F75E22B33165D919D2C4DC");
+	//////////////////////////////////// TESTING & UTILITY
 	let randN = Math.floor(Math.random() * 1023);
 	let testseed = seedbase[randN].seed;
 
@@ -92,16 +109,7 @@ describe("Start of tests", () => {
 
 	const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
 
-	const ProposalState = {
-		Pending: 0,
-		Active: 1,
-		Defeated: 2,
-		Timelocked: 3,
-		AwaitingExecution: 4,
-		Executed: 5,
-		Expired: 6,
-	}
-
+	///////////////////////////////////////////////////////////////////////////7
 	before(async () => {
 		signerArray = await ethers.getSigners();
 		dore = signerArray[0];
@@ -125,8 +133,10 @@ describe("Start of tests", () => {
 		VRFRequestHelper = await VRFRequestHelperFactory.deploy();
 
 		GovernanceContract = await ethers.getContractAt("./contracts/virtualGovernance/Governance.sol:Governance", proxy_address);
+		GnosisEasyAuction = await ethers.getContractAt(EasyAuctionJson.abi, "0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101");
 
 		TornToken = await ethers.getContractAt("@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20", "0x77777FeDdddFfC19Ff86DB637967013e6C6A116C");
+		WETH = await ethers.getContractAt("IWETH", "0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2");
 		ChainlinkToken = await ethers.getContractAt("@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol:LinkTokenInterface", "0x514910771AF9Ca656af840dff83E8264EcF986CA")
 
 		votingDelay = await GovernanceContract.VOTING_DELAY();
@@ -216,17 +226,26 @@ describe("Start of tests", () => {
 				);
 
 				await dore.sendTransaction({to:whale.address, value: pE(10)})
-				await expect(GovernanceContract.execute(id)).to.not.be.reverted;
+				const executeResponse = await GovernanceContract.execute(id);
+				const executeReceipt = await executeResponse.wait();
+
+				console.log("______________________\n", "Gas used for execution: ", executeReceipt.cumulativeGasUsed.toString(), "\n-------------------------\n");
+
+				TornadoAuctionHandler = await ethers.getContractAt("TornadoAuctionHandler", executeReceipt.logs[9].address);
 				GovernanceContract = await ethers.getContractAt("GovernanceLotteryUpgrade", GovernanceContract.address);
 
 				clog(await GovernanceContract.version());
+				const auctionCounter = await TornadoAuctionHandler.auctionCounter();
+				const auctionData = await GnosisEasyAuction.auctionData(auctionCounter);
+				expect(auctionData.auctioningToken).to.equal(TornToken.address);
+
+				console.log("////////////////AUCTION/////////////////\n", "Started at: ", await timestamp(), ", Will end at: ", auctionData.auctionEndDate.toString(), "\n////////////////////////////////");
 
 				snapshotIdArray[1] = await sendr("evm_snapshot", []);
 			});
 		});
 
 		describe("Mock rewards + proposal distribution with multiple accounts", async () => {
-
 			let addrArray = [];
 			let signerArmy = [];
 
@@ -253,6 +272,7 @@ describe("Start of tests", () => {
 				const whale0Balance = (await TornToken.balanceOf(whales[0].address));
 				const toTransfer = whale0Balance.sub(pE(10000)).div(50);
 				let torn0 = await TornToken.connect(whales[0]);
+				let lockedSum = BigNumber.from(0);
 
 				for (i = 0; i < 50; i++) {
 					const accAddress = accountList[i+7].checksumAddress;
@@ -268,21 +288,62 @@ describe("Start of tests", () => {
 
 					await expect(torn.approve(GovernanceContract.address, toTransfer)).to.not.be.reverted;
 					const gov = await GovernanceContract.connect(signerArmy[i]);
+
 					if(i > 20) {
 						await expect(() => gov.lockWithApproval(toTransfer.div(i))).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer.div(i)));
+						lockedSum = lockedSum.add(toTransfer.div(i));
 					} else {
 						await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn, signerArmy[i], BigNumber.from(0).sub(toTransfer));
+						lockedSum = lockedSum.add(toTransfer);
 					}
 
 					const restBalance = await torn.balanceOf(signerArmy[i].address);
 					await torn.transfer(whale.address, restBalance);
 				}
 
+				const TornVault = await GovernanceContract.userVault();
+				expect(await TornToken.balanceOf(TornVault)).to.equal(lockedSum);
+
 				const gov = await GovernanceContract.connect(whales[0]);
 				await expect(torn0.approve(GovernanceContract.address, pE(10000))).to.not.be.reverted;
 				await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn0, whales[0], BigNumber.from(0).sub(toTransfer));
 
 				snapshotIdArray[2] = await sendr("evm_snapshot", []);
+			});
+
+			it("Should test if auction will transfer ETH with handler properly", async () => {
+				const smallBidder = signerArray[1];
+				const largeBidder = signerArray[2];
+				const mediumBidder = signerArray[3];
+
+				GnosisEasyAuction = await GnosisEasyAuction.connect(largeBidder);
+
+				WETH = await WETH.connect(largeBidder);
+				await expect(() => WETH.deposit({value: pE(100)})).to.changeEtherBalance(largeBidder, BigNumber.from(0).sub(pE(100)));
+				await WETH.approve(GnosisEasyAuction.address, pE(1000000000));
+
+				let torn = await TornToken.connect(whale);
+				await TornToken.transfer(largeBidder.address, pE(200));
+				torn = await TornToken.connect(largeBidder);
+				await torn.approve(GnosisEasyAuction.address, pE(200));
+
+//			await expect(() => GnosisEasyAuction.placeSellOrders(
+//				BigNumber.from(38),
+//				[
+//					pE(1.1),pE(1.1) 
+//				],
+//				[
+//					pE(40),pE(40)
+//				],
+//				[
+//					ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [0]))
+//				],
+//				ethers.utils.defaultAbiCoder.encode(["uint256"], [0]),
+//				{
+//					gasLimit: BigNumber.from("30000000"),
+//					gasPrice: BigNumber.from(6),
+//				}
+//			)).to.changeTokenBalance(WETH, GnosisEasyAuction, pE(80));
 			});
 
 			it("Test multiple accounts proposal", async () => {
@@ -294,10 +355,6 @@ describe("Start of tests", () => {
 				////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
 				let response, id, state;
 				[response, id, state] = await propose([whales[0], ProposalContract, "LotteryUpgrade"]);
-//			console.log(
-//				"Proposal threshold: ", (await GovernanceContract.PROPOSAL_THRESHOLD()).toString(), 
-//				"\n", "Whale 0 balance: ", (await GovernanceContract.))
-//			[response, id, state] = await propose([whales[0], ProposalContract, "LotteryUpgrade"]);
 
 				const { events } = await response.wait();
 				const args = events.find(({ event }) => event == "ProposalCreated").args
