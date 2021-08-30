@@ -15,7 +15,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
         address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
     uint256 public auctionCounter;
 
-    event TornadoAuctionHandlerCreated(address _handler);
+    event TornadoAuctionHandlerCreated(address indexed _handler);
 
     constructor() public {
         emit TornadoAuctionHandlerCreated(address(this));
@@ -67,6 +67,8 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
             .depositEthereumForGasCompensations
             .value(address(this).balance)();
     }
+
+    receive() external payable {}
 
     function getAuctionCounter() external view returns (uint256) {
         return auctionCounter;

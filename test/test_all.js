@@ -230,8 +230,16 @@ describe("Start of tests", () => {
 				const executeReceipt = await executeResponse.wait();
 
 				console.log("______________________\n", "Gas used for execution: ", executeReceipt.cumulativeGasUsed.toString(), "\n-------------------------\n");
+				const topic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef';
+				let handlerAddress;
 
-				TornadoAuctionHandler = await ethers.getContractAt("TornadoAuctionHandler", executeReceipt.logs[9].address);
+				for(i = 0; i < executeReceipt.logs.length; i++) {
+					if(executeReceipt.logs[i].topics[0] == topic) {
+						handlerAddress = executeReceipt.logs[i].topics[1];
+					}
+				}
+
+				TornadoAuctionHandler = await ethers.getContractAt("TornadoAuctionHandler", ("0x" + handlerAddress.slice(26)));
 				GovernanceContract = await ethers.getContractAt("GovernanceLotteryUpgrade", GovernanceContract.address);
 
 				clog(await GovernanceContract.version());
@@ -309,6 +317,13 @@ describe("Start of tests", () => {
 				await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn0, whales[0], BigNumber.from(0).sub(toTransfer));
 
 				snapshotIdArray[2] = await sendr("evm_snapshot", []);
+			});
+
+			it("Should test if auction handler can convert ETH to gov", async () => {
+				WETH = await WETH.connect(signerArray[4]);
+				await WETH.deposit({value: pE(100)});
+				await WETH.transfer(TornadoAuctionHandler.address, pE(100))
+				await expect(() => TornadoAuctionHandler.convertAndTransferToGovernance()).to.changeEtherBalance(GovernanceContract, pE(100));
 			});
 
 			it("Should test if auction will transfer ETH with handler properly", async () => {
