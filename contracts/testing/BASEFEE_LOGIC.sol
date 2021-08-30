@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 
 contract BASEFEE_LOGIC {
-    function RETURN_BASEFEE() external view returns (uint256) {
-        return 5;
-    }
+  function RETURN_BASEFEE() external view returns (uint256) {
+    return 5;
+  }
 }

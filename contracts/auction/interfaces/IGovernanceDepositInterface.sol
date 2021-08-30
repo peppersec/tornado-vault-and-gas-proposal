@@ -3,5 +3,5 @@
 pragma solidity ^0.6.12;
 
 interface IGovernanceDepositInterface {
-    function depositEthereumForGasCompensations() external payable;
+  function depositEthereumForGasCompensations() external payable;
 }
