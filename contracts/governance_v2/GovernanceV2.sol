@@ -9,22 +9,14 @@ import { Governance } from "../virtualGovernance/Governance.sol";
 /// @title Version 2 Governance contract of the tornado.cash governance
 contract GovernanceV2 is Governance {
   // vault which stores user TORN
-  TornVault public userVault;
+  address public immutable userVault;
 
   // information on whether someone's tokens are still in governance
   mapping(address => bool) public isBalanceMigrated;
 
   // call Governance v1 constructor
-  constructor() public Governance() {}
-
-  /// @notice Deploys the vault to hold user tokens
-  /// @return Boolean, if true, deployment succeeded
-  function deployVault() external returns (bool) {
-    require(address(userVault) == address(0), "vault already deployed");
-    userVault = new TornVault();
-    assert(address(userVault) != address(0));
-    torn.approve(address(userVault), type(uint256).max);
-    return true;
+  constructor(address _userVault) public Governance() {
+    userVault = _userVault;
   }
 
   /// @notice Withdraws TORN from governance if conditions permit
@@ -39,7 +31,7 @@ contract GovernanceV2 is Governance {
     }
     require(getBlockTimestamp() > canWithdrawAfter[msg.sender], "Governance: tokens are locked");
     lockedBalance[msg.sender] = lockedBalance[msg.sender].sub(amount, "Governance: insufficient balance");
-    require(userVault.withdrawTorn(amount), "withdrawTorn failed");
+    require(TornVault(userVault).withdrawTorn(amount), "withdrawTorn failed");
     require(torn.transfer(msg.sender, amount), "TORN: transfer failed");
   }
 
@@ -67,7 +59,7 @@ contract GovernanceV2 is Governance {
   /// @notice migrates TORN for both unlock() and _transferTokens (which is part of 2 lock functions)
   function migrateTORN() internal {
     require(!isBalanceMigrated[msg.sender], "cannot migrate twice");
-    require(torn.transfer(address(userVault), lockedBalance[msg.sender]), "TORN: transfer failed");
+    require(torn.transfer(userVault, lockedBalance[msg.sender]), "TORN: transfer failed");
     isBalanceMigrated[msg.sender] = true;
   }
 }

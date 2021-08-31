@@ -8,6 +8,16 @@ contract ImmutableGovernanceInformation {
   address public constant GovernanceAddress = address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
   address public constant TornTokenAddress = address(0x77777FeDdddFfC19Ff86DB637967013e6C6A116C);
 
+  modifier onlyGovernance() {
+    require(msg.sender == GovernanceAddress, "only governance");
+    _;
+  }
+
+  modifier onlyMultisig() {
+    require(msg.sender == TornadoMultisig, "only governance");
+    _;
+  }
+
   function returnPayableGovernance() public pure returns (address payable) {
     return payable(GovernanceAddress);
   }

@@ -5,33 +5,27 @@ pragma experimental ABIEncoderV2;
 
 import { GovernanceV2 } from "./governance_v2/GovernanceV2.sol";
 import { GasCompensator } from "./basefee/GasCompensator.sol";
-import { TornadoLottery } from "./TornadoLottery.sol";
+import { ITornadoLottery } from "./interfaces/ITornadoLottery.sol";
 
 contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
   address public constant TornadoMultisig = address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
+  address public immutable lotteryAddress;
 
   mapping(address => mapping(uint256 => bool)) public compensatedForVote;
-  TornadoLottery public GovernanceLottery;
 
   event RegisterAccountReverted(uint256 proposalId, address account);
 
-  constructor(address _logic) public GovernanceV2() GasCompensator(_logic) {}
+  constructor(
+    address _userVault,
+    address _basefeeLogic,
+    address _lotteryLogic
+  ) public GovernanceV2(_userVault) GasCompensator(_basefeeLogic) {
+    lotteryAddress = _lotteryLogic;
+  }
 
   modifier onlyMultisig() {
     require(msg.sender == TornadoMultisig, "only multisig");
     _;
-  }
-
-  function deployLottery() external returns (bool) {
-    require(address(GovernanceLottery) == address(0), "vault already deployed");
-    GovernanceLottery = new TornadoLottery();
-    assert(address(GovernanceLottery) != address(0));
-    torn.approve(address(GovernanceLottery), type(uint256).max);
-    return true;
-  }
-
-  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyMultisig {
-    GovernanceLottery.prepareProposalForPayouts(proposalId, proposalRewards);
   }
 
   function setGasCompensationsLimit(uint256 _gasCompensationsLimit) external virtual override onlyMultisig {
@@ -59,18 +53,6 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     }
   }
 
-  function finishProposalPreparation(uint256 proposalId) external gasCompensation(msg.sender, true, 100000) {
-    GovernanceLottery.finishProposalPreparation(proposalId);
-  }
-
-  function claimRewards(
-    uint256 proposalId,
-    uint256 voteIndex,
-    uint256 numberIndex
-  ) external {
-    GovernanceLottery.claimRewards(proposalId, voteIndex, numberIndex, msg.sender, address(torn));
-  }
-
   function hasAccountVoted(uint256 proposalId, address account) external view returns (bool) {
     return proposals[proposalId].receipts[account].hasVoted;
   }
@@ -93,7 +75,11 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
 
   function _registerAccountWithLottery(uint256 proposalId, address account) private {
     try
-      GovernanceLottery.registerAccountWithLottery(proposalId, account, uint96(proposals[proposalId].receipts[account].votes))
+      ITornadoLottery(lotteryAddress).registerAccountWithLottery(
+        proposalId,
+        account,
+        uint96(proposals[proposalId].receipts[account].votes)
+      )
     {} catch {
       emit RegisterAccountReverted(proposalId, account);
     }

@@ -5,8 +5,8 @@ pragma solidity ^0.6.12;
 import "@chainlink/contracts/src/v0.6/VRFConsumerBase.sol";
 
 abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
-  mapping(uint256 => uint256) internal randomNumbers;
-  uint256 internal idForLatestRandomNumber;
+  mapping(uint256 => uint256) public randomNumbers;
+  uint256 public idForLatestRandomNumber;
   bytes32 public keyHash;
   uint256 internal fee;
 

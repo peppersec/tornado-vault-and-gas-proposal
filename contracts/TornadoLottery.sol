@@ -8,8 +8,9 @@ import { ABDKMath64x64 } from "./libraries/ABDKMath64x64.sol";
 import { LotteryRandomNumberConsumer } from "./LotteryRandomNumberConsumer.sol";
 import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
 import { Governance } from "./virtualGovernance/Governance.sol";
+import { ImmutableGovernanceInformation } from "./proposal/ImmutableGovernanceInformation.sol";
 
-contract TornadoLottery is LotteryRandomNumberConsumer {
+contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInformation {
   using SafeMath for uint96;
 
   enum LotteryState {
@@ -33,13 +34,10 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
     uint248 proposalRewardPerWinner;
   }
 
-  address public constant TornadoGovernance = address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
-
   uint256 public LOTTERY_WINNERS = 10;
 
   mapping(uint256 => SingleUserVoteData[]) public lotteryUserData;
   mapping(uint256 => ProposalData) public proposalsData;
-  mapping(uint256 => uint256[]) public lotteryNumbers;
 
   LotteryState public lotteryState;
 
@@ -51,13 +49,9 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
       bytes32(0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445),
       (2 * (10**18))
     )
+    ImmutableGovernanceInformation()
   {
     lotteryState = LotteryState.Idle;
-  }
-
-  modifier onlyGovernance() {
-    require(msg.sender == TornadoGovernance, "only governance");
-    _;
   }
 
   function registerAccountWithLottery(
@@ -81,13 +75,13 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
   function checkIfAccountHasWon(
     uint256 proposalId,
     uint256 voteIndex,
-    uint256 numberIndex
+    uint256 lotteryNumber
   ) public view returns (bool) {
-    return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <= lotteryNumbers[proposalId][numberIndex] &&
-      lotteryNumbers[proposalId][numberIndex] < lotteryUserData[proposalId][voteIndex].tornSqrt);
+    return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <= lotteryNumber &&
+      lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
   }
 
-  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyGovernance {
+  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyMultisig {
     require(_checkIfProposalIsFinished(proposalId), "only when proposal is defeated or executed! (randomness)");
     require(lotteryState == LotteryState.Idle, "already preparing another proposal");
 
@@ -96,44 +90,48 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
       ProposalState.PreparingProposalForPayouts,
       uint248(proposalRewards.div(LOTTERY_WINNERS))
     );
-    lotteryNumbers[proposalId] = new uint256[](LOTTERY_WINNERS);
-    idForLatestRandomNumber = proposalId;
 
+    idForLatestRandomNumber = proposalId;
     getRandomNumber();
   }
 
   function claimRewards(
     uint256 proposalId,
     uint256 voteIndex,
-    uint256 numberIndex,
-    address account,
-    address torn
-  ) external onlyGovernance {
-    require(account == lotteryUserData[proposalId][voteIndex].voter, "invalid claimer/claimed once");
+    uint256 numberIndex
+  ) external {
+    require(msg.sender == lotteryUserData[proposalId][voteIndex].voter, "invalid claimer/claimed once");
     require(_checkIfProposalIsReadyForPayouts(proposalId), "proposal not ready for payouts");
+    require(voteIndex < LOTTERY_WINNERS, "can't roll higher");
 
     lotteryUserData[proposalId][voteIndex].voter = address(0);
 
-    if (checkIfAccountHasWon(proposalId, voteIndex, numberIndex)) {
+    if (
+      checkIfAccountHasWon(
+        proposalId,
+        voteIndex,
+        expand(
+          randomNumbers[proposalId],
+          numberIndex,
+          uint256(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt).add(1)
+        )
+      )
+    ) {
       require(
-        IERC20(torn).transferFrom(TornadoGovernance, account, uint256(proposalsData[proposalId].proposalRewardPerWinner)),
+        IERC20(TornTokenAddress).transferFrom(
+          GovernanceAddress,
+          msg.sender,
+          uint256(proposalsData[proposalId].proposalRewardPerWinner)
+        ),
         "Lottery reward transfer failed"
       );
     }
   }
 
-  function finishProposalPreparation(uint256 proposalId) external onlyGovernance {
-    require(proposalsData[proposalId].proposalState == ProposalState.PreparingProposalForPayouts, "invalid state");
-    lotteryState = LotteryState.Idle;
-    proposalsData[proposalId].proposalState = ProposalState.ProposalReadyForPayouts;
-    lotteryNumbers[proposalId] = _calculateRandomNumberArray(
-      randomNumbers[proposalId],
-      uint256(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt),
-      LOTTERY_WINNERS
-    );
-  }
-
   function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+    require(proposalsData[idForLatestRandomNumber].proposalState == ProposalState.PreparingProposalForPayouts, "invalid state");
+    lotteryState = LotteryState.Idle;
+    proposalsData[idForLatestRandomNumber].proposalState = ProposalState.ProposalReadyForPayouts;
     randomNumbers[idForLatestRandomNumber] = randomness;
   }
 
@@ -156,35 +154,24 @@ contract TornadoLottery is LotteryRandomNumberConsumer {
   }
 
   function _checkIfProposalIsActive(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(TornadoGovernance).state(proposalId) == Governance.ProposalState.Active);
+    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Active);
   }
 
   function _checkIfProposalIsPending(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(TornadoGovernance).state(proposalId) == Governance.ProposalState.Pending);
+    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Pending);
   }
 
   function _checkIfProposalIsFinished(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(TornadoGovernance).state(proposalId) == Governance.ProposalState.Defeated ||
-      GovernanceLotteryUpgrade(TornadoGovernance).state(proposalId) == Governance.ProposalState.Executed);
+    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Defeated ||
+      GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Executed);
   }
 
   function _checkIfAccountHasVoted(uint256 proposalId, address account) private view returns (bool) {
-    return GovernanceLotteryUpgrade(TornadoGovernance).hasAccountVoted(proposalId, account);
+    return GovernanceLotteryUpgrade(GovernanceAddress).hasAccountVoted(proposalId, account);
   }
 
   function _checkIfProposalIsReadyForPayouts(uint256 proposalId) private view returns (bool) {
     return (proposalsData[proposalId].proposalState == ProposalState.ProposalReadyForPayouts);
-  }
-
-  function _calculateRandomNumberArray(
-    uint256 randomSeed,
-    uint256 upperBound,
-    uint256 arraySize
-  ) private pure returns (uint256[] memory toReturn) {
-    toReturn = new uint256[](arraySize);
-    for (uint256 i = 0; i < arraySize; i++) {
-      toReturn[i] = expand(randomSeed, i, upperBound.add(1));
-    }
   }
 
   function _calculateSquareRoot(uint256 number) private pure returns (uint256) {

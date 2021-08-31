@@ -4,30 +4,30 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { TornadoLottery } from "./TornadoLottery.sol";
+import { TornVault } from "./governance_v2/TornVault.sol";
 import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
 import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
+import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
 import { ImmutableGovernanceInformation } from "./proposal/ImmutableGovernanceInformation.sol";
 
 contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
-  address public immutable UpgradesProposalHelperAddress;
-  address public immutable ExtrasProposalHelperAddress;
+  address public immutable basefeeLogic;
+  uint256 public immutable votingPeriod;
 
-  constructor(address _UpgradesProposalHelperAddress, address _ExtrasProposalHelperAddress) public {
-    UpgradesProposalHelperAddress = _UpgradesProposalHelperAddress;
-    ExtrasProposalHelperAddress = _ExtrasProposalHelperAddress;
+  constructor(address _basefeeLogic, uint256 _votingPeriod) public {
+    basefeeLogic = _basefeeLogic;
+    votingPeriod = _votingPeriod;
   }
 
   function executeProposal() external {
-    (bool success, ) = UpgradesProposalHelperAddress.delegatecall(abi.encodeWithSignature("nestedUpgradeGovernance()"));
-    require(success, "upgrade failed");
-
-    (success, ) = ExtrasProposalHelperAddress.delegatecall(abi.encodeWithSignature("nestedFunctionsGovernance()"));
-    require(success, "functions failed");
+    LoopbackProxy(returnPayableGovernance()).upgradeTo(
+      address(new GovernanceLotteryUpgrade(basefeeLogic, address(new TornadoLottery()), address(new TornVault())))
+    );
+    GovernanceLotteryUpgrade(returnPayableGovernance()).setVotingPeriod(votingPeriod);
 
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
-
     IERC20(TornTokenAddress).transfer(address(auctionHandler), 100e18);
-
     // EXAMPLE NUMBERS
     auctionHandler.initializeAuction(1631743200, 100 ether, 151e16, 1 ether, 0);
   }
