@@ -21,13 +21,11 @@ abstract contract GasCompensator is BASEFEE_PROXY {
     if (!gasCompensationsPaused && eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 gasDiff = startGas.sub(gasleft());
-      uint256 toCompensate = gasDiff.mul(RETURN_BASEFEE());
-      toCompensate += extra;
+      uint256 toCompensate = startGas.sub(gasleft()).add(extra).mul(RETURN_BASEFEE());
 
       toCompensate = (toCompensate < gasCompensationsLimit) ? toCompensate : gasCompensationsLimit;
 
-      require(payable(account).send(toCompensate), "gas compensation failed");
+      require(payable(account).send(toCompensate), "compensation failed");
 
       gasCompensationsLimit -= toCompensate;
     } else {

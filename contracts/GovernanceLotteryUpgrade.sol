@@ -38,7 +38,7 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     external
     virtual
     override
-    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 210000)
+    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 21000)
   {
     bool votedAlready = hasAccountVoted(proposalId, msg.sender);
     _castVote(msg.sender, proposalId, support);

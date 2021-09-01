@@ -17,7 +17,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
     uint256 _fee
   ) public VRFConsumerBase(_vrfCoordinator, _link) {
     keyHash = _keyHash;
-    fee = _fee; // have to check on reducing gas fee but probably we will find a way to do a single request for the lottery payout
+    fee = _fee;
   }
 
   /**
