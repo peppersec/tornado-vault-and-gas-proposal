@@ -11,8 +11,6 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
   address public constant TornadoMultisig = address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
   address public immutable lotteryAddress;
 
-  mapping(address => mapping(uint256 => bool)) public compensatedForVote;
-
   event RegisterAccountReverted(uint256 proposalId, address account);
 
   constructor(
@@ -40,38 +38,45 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     external
     virtual
     override
-    gasCompensation(msg.sender, !compensatedForVote[msg.sender][proposalId], 210000)
+    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 210000)
   {
-    compensatedForVote[msg.sender][proposalId] = true;
+    bool votedAlready = hasAccountVoted(proposalId, msg.sender);
     _castVote(msg.sender, proposalId, support);
-    _registerAccountWithLottery(proposalId, msg.sender);
+    if(!votedAlready) {
+      _registerAccountWithLottery(proposalId, msg.sender);
+    }
   }
 
   function castDelegatedVote(
     address[] memory from,
     uint256 proposalId,
     bool support
-  ) external virtual override gasCompensation(msg.sender, !compensatedForVote[msg.sender][proposalId], 0) {
-    compensatedForVote[msg.sender][proposalId] = true;
+  ) external virtual override gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 0) {
     for (uint256 i = 0; i < from.length; i++) {
       require(delegatedTo[from[i]] == msg.sender, "Governance: not authorized");
+      bool votedAlready = hasAccountVoted(proposalId, from[i]);
       _castVote(from[i], proposalId, support);
-      _registerAccountWithLottery(proposalId, from[i]);
+      if(!votedAlready) {
+        _registerAccountWithLottery(proposalId, from[i]);
+      }
     }
     if (lockedBalance[msg.sender] > 0) {
+      bool votedAlready = hasAccountVoted(proposalId, msg.sender);
       _castVote(msg.sender, proposalId, support);
-      _registerAccountWithLottery(proposalId, msg.sender);
+      if(!votedAlready) {
+        _registerAccountWithLottery(proposalId, msg.sender);
+      }
     }
-  }
-
-  function hasAccountVoted(uint256 proposalId, address account) external view returns (bool) {
-    return proposals[proposalId].receipts[account].hasVoted;
   }
 
   /// @notice checker for success on deployment
   /// @return returns precise version of governance
   function version() external pure virtual override returns (string memory) {
     return "2.lottery-and-vault-upgrade";
+  }
+
+  function hasAccountVoted(uint256 proposalId, address account) public view returns (bool) {
+    return proposals[proposalId].receipts[account].hasVoted;
   }
 
   function _registerAccountWithLottery(uint256 proposalId, address account) private {
