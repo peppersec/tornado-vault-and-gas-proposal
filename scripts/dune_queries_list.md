@@ -1,6 +1,7 @@
 # Dune Analytics queries to determine locked torn
 
-I looked at the difference between locked and unlocked tokens:
+I looked at the difference between locked and unlocked tokens for the governance vault upgrade, 
+due to us simplifying to not have to include migration logic which each user would have to call:
 
 https://dune.xyz/queries/133750
 
@@ -8,7 +9,13 @@ And found this to be 1.356062583491274e+22
 
 After calculations with the find_torn_distributed.js script, which gives the same results as:
 
-https://dune.xyz/queries/133422
+https://dune.xyz/queries/133422 (sum the hex values at https://onlinehextools.com/add-hex-numbers)
+
+(The result is received by summing the hex values and then following the formula:
+
+$governance_balance - (vesting_released_to_governance - proposal_execution_outflow)$
+
+Where the proposal outflow is received either by the script or the dune query)
 
 Which though leads to a discrepancy in amount locked with the above calculation, leading to an number of:
 
@@ -32,4 +39,4 @@ For the reason that with this amount of TORN it would be more important to ensur
 The extra TORN would only stay reedemable by the user.
 
 If wanted, an approval can be added for this amount of TORN in the same function to make the funds retrievable by governance in case
-the funds are found to not belong to the user. A simple transferFrom would then suffice to transfer it out to governance again.
+the funds are found to not belong to a user. A simple transferFrom would then suffice to transfer it out to governance again.
