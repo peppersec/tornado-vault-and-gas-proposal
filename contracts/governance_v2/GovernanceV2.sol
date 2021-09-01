@@ -51,7 +51,7 @@ contract GovernanceV2 is Governance {
     require(
       torn.transfer(
         userVault,
-        (torn.balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(198276172023306229305190))
+        (torn.balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074666))
       ),
       "TORN: transfer failed"
     );
