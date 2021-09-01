@@ -59,13 +59,13 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     address account,
     uint96 accountVotes
   ) external onlyGovernance {
-    require(_checkIfAccountHasVoted(proposalId, account), "Account has not voted on this proposal");
+    require(_checkIfAccountHasVoted(proposalId, account), "Account has not voted");
     _registerUserData(proposalId, account, accountVotes);
   }
 
   function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyMultisig {
-    require(_checkIfProposalIsFinished(proposalId), "only when proposal is defeated or executed! (randomness)");
-    require(lotteryState == LotteryState.Idle, "already preparing another proposal");
+    require(_checkIfProposalIsFinished(proposalId), "proposal not finished");
+    require(lotteryState == LotteryState.Idle, "preparing another proposal");
 
     lotteryState = LotteryState.PreparingProposalForPayouts;
     proposalsData[proposalId] = ProposalData(
@@ -83,8 +83,8 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     uint256 numberIndex
   ) external {
     require(msg.sender == lotteryUserData[proposalId][voteIndex].voter, "invalid claimer/claimed once");
-    require(_checkIfProposalIsReadyForPayouts(proposalId), "proposal not ready for payouts");
-    require(numberIndex < LOTTERY_WINNERS, "can't roll higher");
+    require(_checkIfProposalIsReadyForPayouts(proposalId), "not ready for payouts");
+    require(numberIndex < LOTTERY_WINNERS, "cant roll higher");
 
     lotteryUserData[proposalId][voteIndex].voter = address(0);
 

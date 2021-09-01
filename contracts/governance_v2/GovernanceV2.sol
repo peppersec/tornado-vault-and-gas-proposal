@@ -41,7 +41,7 @@ contract GovernanceV2 is Governance {
   /// @param owner account/contract which (this) spender will send to the user vault
   /// @param amount amount which spender will send to the user vault
   function _transferTokens(address owner, uint256 amount) internal override {
-    require(torn.transferFrom(owner, address(userVault), amount), "TORN: transferFrom failed");
+    require(torn.transferFrom(owner, userVault, amount), "TORN: transferFrom failed");
     lockedBalance[owner] = lockedBalance[owner].add(amount);
   }
 

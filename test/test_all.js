@@ -128,7 +128,7 @@ describe('Start of tests', () => {
     VRFRequestHelper = await VRFRequestHelperFactory.deploy()
 
     GovernanceContract = await ethers.getContractAt(
-      './contracts/virtualGovernance/Governance.sol:Governance',
+      'Governance',
       proxy_address,
     )
     GnosisEasyAuction = await ethers.getContractAt(

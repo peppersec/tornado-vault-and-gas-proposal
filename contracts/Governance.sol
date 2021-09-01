@@ -262,7 +262,7 @@ contract Governance is Initializable, Configuration, Delegation, EnsResolve {
     emit ProposalExecuted(proposalId);
   }
 
-  function castVote(uint256 proposalId, bool support) external {
+  function castVote(uint256 proposalId, bool support) external virtual {
     _castVote(msg.sender, proposalId, support);
   }
 

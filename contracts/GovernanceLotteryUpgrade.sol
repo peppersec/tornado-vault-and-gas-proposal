@@ -36,6 +36,17 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     gasCompensationsPaused = !gasCompensationsPaused;
   }
 
+  function castVote(uint256 proposalId, bool support)
+    external
+    virtual
+    override
+    gasCompensation(msg.sender, !compensatedForVote[msg.sender][proposalId], 210000)
+  {
+    compensatedForVote[msg.sender][proposalId] = true;
+    _castVote(msg.sender, proposalId, support);
+    _registerAccountWithLottery(proposalId, msg.sender);
+  }
+
   function castDelegatedVote(
     address[] memory from,
     uint256 proposalId,
@@ -44,11 +55,11 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     compensatedForVote[msg.sender][proposalId] = true;
     for (uint256 i = 0; i < from.length; i++) {
       require(delegatedTo[from[i]] == msg.sender, "Governance: not authorized");
-      super._castVote(from[i], proposalId, support);
+      _castVote(from[i], proposalId, support);
       _registerAccountWithLottery(proposalId, from[i]);
     }
     if (lockedBalance[msg.sender] > 0) {
-      super._castVote(msg.sender, proposalId, support);
+      _castVote(msg.sender, proposalId, support);
       _registerAccountWithLottery(proposalId, msg.sender);
     }
   }
@@ -61,16 +72,6 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
   /// @return returns precise version of governance
   function version() external pure virtual override returns (string memory) {
     return "2.lottery-and-vault-upgrade";
-  }
-
-  function _castVote(
-    address voter,
-    uint256 proposalId,
-    bool support
-  ) internal virtual override gasCompensation(voter, !compensatedForVote[voter][proposalId], 210000) {
-    compensatedForVote[voter][proposalId] = true;
-    super._castVote(voter, proposalId, support);
-    _registerAccountWithLottery(proposalId, voter);
   }
 
   function _registerAccountWithLottery(uint256 proposalId, address account) private {
