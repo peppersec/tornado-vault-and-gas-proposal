@@ -132,7 +132,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
       lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
   }
 
-  function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+  function fulfillRandomness(bytes32, uint256 randomness) internal override {
     require(proposalsData[idForLatestRandomNumber].proposalState == ProposalState.PreparingProposalForPayouts, "invalid state");
     lotteryState = LotteryState.Idle;
     proposalsData[idForLatestRandomNumber].proposalState = ProposalState.ProposalReadyForPayouts;

@@ -29,7 +29,7 @@ contract LRNCTestImplementation is LotteryRandomNumberConsumer {
     idForLatestRandomNumber = _idForLatestRandomNumber;
   }
 
-  function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {
+  function fulfillRandomness(bytes32, uint256 randomness) internal override {
     randomResults[idForLatestRandomNumber] = randomness;
   }
 
@@ -37,7 +37,7 @@ contract LRNCTestImplementation is LotteryRandomNumberConsumer {
     uint256 resultId,
     uint256 entropy,
     uint256 upperBound
-  ) internal view returns (uint256) {
+  ) internal pure returns (uint256) {
     return expand(resultId, entropy, upperBound);
   }
 }

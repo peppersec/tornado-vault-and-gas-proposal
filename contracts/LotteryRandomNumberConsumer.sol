@@ -23,7 +23,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
   /**
    * Requests randomness
    */
-  function getRandomNumber() internal returns (bytes32 requestId) {
+  function getRandomNumber() internal returns (bytes32) {
     require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract");
     requestRandomness(keyHash, fee);
   }
@@ -31,7 +31,7 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
   /**
    * Callback function used by VRF Coordinator
    */
-  function fulfillRandomness(bytes32 requestId, uint256 randomness) internal virtual override;
+  function fulfillRandomness(bytes32, uint256 randomness) internal virtual override;
 
   function expand(
     uint256 randomNumber,
