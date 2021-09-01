@@ -4,7 +4,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import { TornVault } from "./TornVault.sol";
-import { Governance } from "../virtualGovernance/Governance.sol";
+import { Governance } from "../Governance.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 

@@ -6,7 +6,7 @@ import { IWETH } from "./interfaces/IWETH.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEasyAuction } from "./interfaces/IEasyAuction.sol";
 import { IGovernanceDepositInterface } from "./interfaces/IGovernanceDepositInterface.sol";
-import { ImmutableGovernanceInformation } from "../proposal/ImmutableGovernanceInformation.sol";
+import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
 
 contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   address public constant EasyAuctionAddress = address(0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101);

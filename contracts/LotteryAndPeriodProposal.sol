@@ -9,7 +9,7 @@ import { TornVault } from "./governance_v2/TornVault.sol";
 import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
 import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
 import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
-import { ImmutableGovernanceInformation } from "./proposal/ImmutableGovernanceInformation.sol";
+import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
 
 contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
   address public immutable basefeeLogic;

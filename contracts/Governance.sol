@@ -9,8 +9,8 @@ import "@openzeppelin/upgrades-core/contracts/Initializable.sol";
 import "@openzeppelin/contracts/utils/Address.sol";
 import "torn-token/contracts/ENS.sol";
 import "torn-token/contracts/TORN.sol";
-import "../../tornado-governance/contracts/Configuration.sol";
-import "../../tornado-governance/contracts/Core.sol";
+import "../tornado-governance/contracts/Configuration.sol";
+import "../tornado-governance/contracts/Core.sol";
 
 abstract contract Delegation is Core {
   /// @notice Delegatee records

@@ -7,8 +7,8 @@ import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ABDKMath64x64 } from "./libraries/ABDKMath64x64.sol";
 import { LotteryRandomNumberConsumer } from "./LotteryRandomNumberConsumer.sol";
 import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
-import { Governance } from "./virtualGovernance/Governance.sol";
-import { ImmutableGovernanceInformation } from "./proposal/ImmutableGovernanceInformation.sol";
+import { Governance } from "./Governance.sol";
+import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
 
 contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInformation {
   using SafeMath for uint96;
