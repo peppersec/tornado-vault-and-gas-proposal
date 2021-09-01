@@ -14,7 +14,7 @@ contract ImmutableGovernanceInformation {
   }
 
   modifier onlyMultisig() {
-    require(msg.sender == TornadoMultisig, "only governance");
+    require(msg.sender == TornadoMultisig, "only multisig");
     _;
   }
 

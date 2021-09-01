@@ -21,10 +21,12 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
   }
 
   function executeProposal() external {
-    LoopbackProxy(returnPayableGovernance()).upgradeTo(
-      address(new GovernanceLotteryUpgrade(basefeeLogic, address(new TornadoLottery()), address(new TornVault())))
-    );
+    address lottery = address(new TornadoLottery());
+    address vault = address(new TornVault());
+
+    LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceLotteryUpgrade(basefeeLogic, lottery, vault)));
     GovernanceLotteryUpgrade(returnPayableGovernance()).setVotingPeriod(votingPeriod);
+    IERC20(TornTokenAddress).approve(lottery, type(uint256).max);
 
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
     IERC20(TornTokenAddress).transfer(address(auctionHandler), 100e18);

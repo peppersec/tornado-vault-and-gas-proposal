@@ -49,6 +49,10 @@ async function main() {
   let sum = BigNumber.from(0)
 
   for (log of filteredLogs) {
+    console.log(log.data)
+  }
+
+  for (log of filteredLogs) {
     if ('0x' + log.topics[1].slice(26) == GovernanceContract) {
       const value = BigNumber.from(log.data)
       results.push(value.toString())

@@ -63,24 +63,6 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     _registerUserData(proposalId, account, accountVotes);
   }
 
-  function findUserIndex(uint256 proposalId, address account) external view returns (uint256) {
-    for (uint256 i = 0; i < lotteryUserData[proposalId].length; i++) {
-      if (lotteryUserData[proposalId][i].voter == account) {
-        return i;
-      }
-    }
-    return 0;
-  }
-
-  function checkIfAccountHasWon(
-    uint256 proposalId,
-    uint256 voteIndex,
-    uint256 lotteryNumber
-  ) public view returns (bool) {
-    return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <= lotteryNumber &&
-      lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
-  }
-
   function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyMultisig {
     require(_checkIfProposalIsFinished(proposalId), "only when proposal is defeated or executed! (randomness)");
     require(lotteryState == LotteryState.Idle, "already preparing another proposal");
@@ -102,7 +84,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   ) external {
     require(msg.sender == lotteryUserData[proposalId][voteIndex].voter, "invalid claimer/claimed once");
     require(_checkIfProposalIsReadyForPayouts(proposalId), "proposal not ready for payouts");
-    require(voteIndex < LOTTERY_WINNERS, "can't roll higher");
+    require(numberIndex < LOTTERY_WINNERS, "can't roll higher");
 
     lotteryUserData[proposalId][voteIndex].voter = address(0);
 
@@ -126,6 +108,28 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
         "Lottery reward transfer failed"
       );
     }
+  }
+
+  function findUserIndex(uint256 proposalId, address account) external view returns (uint256) {
+    for (uint256 i = 0; i < lotteryUserData[proposalId].length; i++) {
+      if (lotteryUserData[proposalId][i].voter == account) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
+  function getSqrtTornSumForProposal(uint256 proposalId) external view returns (uint256) {
+    return uint256(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt);
+  }
+
+  function checkIfAccountHasWon(
+    uint256 proposalId,
+    uint256 voteIndex,
+    uint256 lotteryNumber
+  ) public view returns (bool) {
+    return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <= lotteryNumber &&
+      lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
   }
 
   function fulfillRandomness(bytes32 requestId, uint256 randomness) internal override {

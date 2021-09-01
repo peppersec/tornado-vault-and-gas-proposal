@@ -108,7 +108,7 @@ describe('Start of tests', () => {
 
   let snapshotIdArray = []
 
-  const delay = ms => new Promise(resolve => setTimeout(resolve, ms))
+  const delay = (ms) => new Promise((resolve) => setTimeout(resolve, ms))
 
   ///////////////////////////////////////////////////////////////////////////7
   before(async () => {
@@ -118,23 +118,23 @@ describe('Start of tests', () => {
     BasefeeLogicFactory = await ethers.getContractFactory('contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC')
     BasefeeLogicContract = await BasefeeLogicFactory.deploy()
 
-    LPEHelperFactory = await ethers.getContractFactory('LotteryProposalExtrasHelper')
-    LPEHelper = await LPEHelperFactory.deploy(260000)
-
-    LPUHelperFactory = await ethers.getContractFactory('LotteryProposalUpgradesHelper')
-    LPUHelper = await LPUHelperFactory.deploy(BasefeeLogicContract.address)
-
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
 
     ProposalFactory = await ethers.getContractFactory('LotteryAndPeriodProposal')
 
-    ProposalContract = await ProposalFactory.deploy(LPUHelper.address, LPEHelper.address)
+    ProposalContract = await ProposalFactory.deploy(BasefeeLogicContract.address, 260000)
 
     VRFRequestHelperFactory = await ethers.getContractFactory('VRFRequestHelper')
     VRFRequestHelper = await VRFRequestHelperFactory.deploy()
 
-    GovernanceContract = await ethers.getContractAt('./contracts/virtualGovernance/Governance.sol:Governance', proxy_address)
-    GnosisEasyAuction = await ethers.getContractAt(EasyAuctionJson.abi, '0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101')
+    GovernanceContract = await ethers.getContractAt(
+      './contracts/virtualGovernance/Governance.sol:Governance',
+      proxy_address,
+    )
+    GnosisEasyAuction = await ethers.getContractAt(
+      EasyAuctionJson.abi,
+      '0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101',
+    )
 
     TornToken = await ethers.getContractAt(
       '@openzeppelin/contracts/token/ERC20/IERC20.sol:IERC20',
@@ -198,7 +198,9 @@ describe('Start of tests', () => {
         await TornToken.approve(GovernanceContract.address, ethers.utils.parseEther('8000000000'))
         await expect(GovernanceContract.lockWithApproval(balance)).to.not.be.reverted
 
-        expect((await GovernanceContract.lockedBalance(whale.address)).toString()).to.equal(balance.toString())
+        expect((await GovernanceContract.lockedBalance(whale.address)).toString()).to.equal(
+          balance.toString(),
+        )
         snapshotIdArray[0] = await sendr('evm_snapshot', [])
       })
     })
@@ -216,11 +218,7 @@ describe('Start of tests', () => {
         expect(args.description).to.be.equal('Lottery Upgrade')
         expect(state).to.be.equal(ProposalState.Pending)
 
-        await minewait(
-          (await GovernanceContract.VOTING_DELAY())
-            .add(1)
-            .toNumber(),
-        )
+        await minewait((await GovernanceContract.VOTING_DELAY()).add(1).toNumber())
         await expect(GovernanceContract.castVote(id, true)).to.not.be.reverted
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
@@ -237,11 +235,16 @@ describe('Start of tests', () => {
         const executeResponse = await GovernanceContract.execute(id)
         const executeReceipt = await executeResponse.wait()
 
-        console.log('______________________\n', 'Gas used for execution: ', executeReceipt.cumulativeGasUsed.toString(), '\n-------------------------\n')
+        console.log(
+          '______________________\n',
+          'Gas used for execution: ',
+          executeReceipt.cumulativeGasUsed.toString(),
+          '\n-------------------------\n',
+        )
         const topic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
         let handlerAddress
 
-        for(i = 0; i < executeReceipt.logs.length; i++) {
+        for (i = 0; i < executeReceipt.logs.length; i++) {
           if (executeReceipt.logs[i].topics[0] == topic) {
             handlerAddress = executeReceipt.logs[i].topics[1]
           }
@@ -251,14 +254,24 @@ describe('Start of tests', () => {
           'TornadoAuctionHandler',
           '0x' + handlerAddress.slice(26),
         )
-        GovernanceContract = await ethers.getContractAt('GovernanceLotteryUpgrade', GovernanceContract.address)
+        GovernanceContract = await ethers.getContractAt(
+          'GovernanceLotteryUpgrade',
+          GovernanceContract.address,
+        )
 
         clog(await GovernanceContract.version())
-        const auctionCounter = await TornadoAuctionHandler.auctionCounter()
+        const auctionCounter = 38
         const auctionData = await GnosisEasyAuction.auctionData(auctionCounter)
         expect(auctionData.auctioningToken).to.equal(TornToken.address)
 
-        console.log('////////////////AUCTION/////////////////\n', 'Started at: ', await timestamp(), ', Will end at: ', auctionData.auctionEndDate.toString(), '\n////////////////////////////////')
+        console.log(
+          '////////////////AUCTION/////////////////\n',
+          'Started at: ',
+          await timestamp(),
+          ', Will end at: ',
+          auctionData.auctionEndDate.toString(),
+          '\n////////////////////////////////',
+        )
 
         snapshotIdArray[1] = await sendr('evm_snapshot', [])
       })
@@ -284,9 +297,13 @@ describe('Start of tests', () => {
         for (i = 1; i < 4; i++) {
           //last test really unnecessary
           const torn = await TornToken.connect(whales[i])
-          const whaleBalance = (await torn.balanceOf(whales[i].address))
+          const whaleBalance = await torn.balanceOf(whales[i].address)
           await torn.approve(addrArray[0], whaleBalance)
-          await expect(() => torn.transfer(addrArray[0], whaleBalance)).to.changeTokenBalance(torn, whales[0], whaleBalance)
+          await expect(() => torn.transfer(addrArray[0], whaleBalance)).to.changeTokenBalance(
+            torn,
+            whales[0],
+            whaleBalance,
+          )
         }
 
         const whale0Balance = await TornToken.balanceOf(whales[0].address)
@@ -303,13 +320,17 @@ describe('Start of tests', () => {
 
           await signerArray[0].sendTransaction(tx)
 
-          await expect(() => torn0.transfer(signerArmy[i].address, toTransfer)).to.changeTokenBalance(torn0, signerArmy[i], toTransfer)
+          await expect(() => torn0.transfer(signerArmy[i].address, toTransfer)).to.changeTokenBalance(
+            torn0,
+            signerArmy[i],
+            toTransfer,
+          )
           let torn = await torn0.connect(signerArmy[i])
 
           await expect(torn.approve(GovernanceContract.address, toTransfer)).to.not.be.reverted
           const gov = await GovernanceContract.connect(signerArmy[i])
 
-          if(i > 20) {
+          if (i > 20) {
             await expect(() => gov.lockWithApproval(toTransfer.div(i))).to.changeTokenBalance(
               torn,
               signerArmy[i],
@@ -334,7 +355,11 @@ describe('Start of tests', () => {
 
         const gov = await GovernanceContract.connect(whales[0])
         await expect(torn0.approve(GovernanceContract.address, pE(10000))).to.not.be.reverted
-        await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(torn0, whales[0], BigNumber.from(0).sub(toTransfer))
+        await expect(() => gov.lockWithApproval(toTransfer)).to.changeTokenBalance(
+          torn0,
+          whales[0],
+          BigNumber.from(0).sub(toTransfer),
+        )
 
         snapshotIdArray[2] = await sendr('evm_snapshot', [])
       })
@@ -357,7 +382,10 @@ describe('Start of tests', () => {
         GnosisEasyAuction = await GnosisEasyAuction.connect(largeBidder)
 
         WETH = await WETH.connect(largeBidder)
-        await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(largeBidder, BigNumber.from(0).sub(pE(100)))
+        await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(
+          largeBidder,
+          BigNumber.from(0).sub(pE(100)),
+        )
         await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
 
         let torn = await TornToken.connect(whale)
@@ -368,7 +396,7 @@ describe('Start of tests', () => {
         //			await expect(() => GnosisEasyAuction.placeSellOrders(
         //				BigNumber.from(38),
         //				[
-        //					pE(1.1),pE(1.1) 
+        //					pE(1.1),pE(1.1)
         //				],
         //				[
         //					pE(40),pE(40)
@@ -386,12 +414,15 @@ describe('Start of tests', () => {
 
       it('Test multiple accounts proposal', async () => {
         ProposalContract = await MockProposalFactory.deploy()
-        const lotteryAddress = (await GovernanceContract.GovernanceLottery())
+        const lotteryAddress = await GovernanceContract.lotteryAddress()
         const GovernanceLottery = await ethers.getContractAt('TornadoLottery', lotteryAddress)
-        clog('Torn balance of governance contract: ', (await TornToken.balanceOf(GovernanceContract.address)).toString())
+        clog(
+          'Torn balance of governance contract: ',
+          (await TornToken.balanceOf(GovernanceContract.address)).toString(),
+        )
 
         ////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
-        let response, id, state;
+        let response, id, state
         ;[response, id, state] = await propose([whales[0], ProposalContract, 'LotteryUpgrade'])
 
         const { events } = await response.wait()
@@ -402,16 +433,17 @@ describe('Start of tests', () => {
         expect(state).to.be.equal(ProposalState.Pending)
 
         ////////////////////////INCREMENT TO VOTING TIME////////////////////////
-        await minewait(
-          (await GovernanceContract.VOTING_DELAY())
-            .add(1)
-            .toNumber(),
-        )
+        await minewait((await GovernanceContract.VOTING_DELAY()).add(1).toNumber())
 
         /////////////////// PREPARE MULTISIG AND COMPENSATIONS
         let multiGov = await GovernanceContract.connect(tornadoMultisig)
         let multiTorn = await TornToken.connect(tornadoMultisig)
-        await dore.sendTransaction({ to:tornadoMultisig.address, value:pE(1) })
+        let multiLottery = await ethers.getContractAt(
+          'TornadoLottery',
+          await GovernanceContract.lotteryAddress(),
+        )
+        multiLottery = multiLottery.connect(tornadoMultisig)
+        await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
 
         await expect(multiGov.setGasCompensationsLimit(pE(500))).to.not.be.reverted
 
@@ -512,7 +544,9 @@ describe('Start of tests', () => {
           }
 
           const receipt = await response.wait()
-          etherUsedWithoutCompensation[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString()
+          etherUsedWithoutCompensation[i] = receipt.cumulativeGasUsed
+            .mul(receipt.effectiveGasPrice)
+            .toString()
         }
 
         await multiGov.pauseOrUnpauseGasCompensations()
@@ -526,7 +560,7 @@ describe('Start of tests', () => {
         let etherUsed = BigNumber.from(0)
         let etherEndDiff = BigNumber.from(0)
 
-        for(i = 0; i < 50; i++) {
+        for (i = 0; i < 50; i++) {
           etherUsed = etherUsed.add(BigNumber.from(gasUsedArray[i]))
           etherUsedNoComp = etherUsedNoComp.add(BigNumber.from(etherUsedWithoutCompensation[i]))
           etherEndDiff = etherEndDiff.add(signerArmyBalanceVoted[i])
@@ -537,16 +571,35 @@ describe('Start of tests', () => {
         etherEndDiff = etherEndDiff.div(50)
 
         console.log(
-          '\n','----------------------------CAST VOTE INFO------------------------', '\n',
-          'Ether use without compensation average: ', etherUsedNoComp.toString(), '\n',
-          'Ether use average: ', etherUsed.toString(), '\n',
-          'Ether diff average: ', etherUsed.sub(etherUsedNoComp).toString(), '\n',
-          'Ether compensated in average: ', etherUsed.sub(etherEndDiff).toString(), '\n',
-          'Gas use average: ', etherUsed.div(5).toString(), '\n',
-          'Gas use without compensation average: ', etherUsedNoComp.div(5).toString(), '\n',
-          'Gas diff average: ', etherUsed.sub(etherUsedNoComp).div(5).toString(), '\n',
-          'Gas compensated in average: ', etherUsed.sub(etherEndDiff).div(5).toString(), '\n',
-          '--------------------------------------------------------------------', '\n',
+          '\n',
+          '----------------------------CAST VOTE INFO------------------------',
+          '\n',
+          'Ether use without compensation average: ',
+          etherUsedNoComp.toString(),
+          '\n',
+          'Ether use average: ',
+          etherUsed.toString(),
+          '\n',
+          'Ether diff average: ',
+          etherUsed.sub(etherUsedNoComp).toString(),
+          '\n',
+          'Ether compensated in average: ',
+          etherUsed.sub(etherEndDiff).toString(),
+          '\n',
+          'Gas use average: ',
+          etherUsed.div(5).toString(),
+          '\n',
+          'Gas use without compensation average: ',
+          etherUsedNoComp.div(5).toString(),
+          '\n',
+          'Gas diff average: ',
+          etherUsed.sub(etherUsedNoComp).div(5).toString(),
+          '\n',
+          'Gas compensated in average: ',
+          etherUsed.sub(etherEndDiff).div(5).toString(),
+          '\n',
+          '--------------------------------------------------------------------',
+          '\n',
         )
 
         /////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
@@ -561,7 +614,8 @@ describe('Start of tests', () => {
         await expect(multiTorn.approve(GovernanceContract.address, pE(1000000))).to.not.be.reverted
 
         // FAIL PREPARE
-        await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to.be.reverted
+        await expect(multiLottery.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to
+          .be.reverted
 
         /////////////////////////////// INCREMENT AGAIN //////////////////////////////////
         await minewait(
@@ -588,9 +642,9 @@ describe('Start of tests', () => {
         expect(await ChainlinkToken.balanceOf(GovernanceLottery.address)).to.equal(pE(500))
 
         ///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
-        await expect(multiGov.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to.not.be.reverted
-
-        clog('Transfer per winner: ', ((await GovernanceLottery.proposalsData(id))[1]).toString())
+        await expect(multiLottery.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to
+          .not.be.reverted
+        clog('Transfer per winner: ', (await GovernanceLottery.proposalsData(id))[1].toString())
 
         expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(1)
 
@@ -599,10 +653,12 @@ describe('Start of tests', () => {
         await sendr('hardhat_setBalance', [vrfCoordinator.address, '0x1B1AE4D6E2EF500000'])
 
         ///////////////////// FULFILL
-        const rId = await VRFRequestHelper.makeRequestId((await GovernanceLottery.keyHash()), (await VRFRequestHelper.makeVRFInputSeed(
+        const rId = await VRFRequestHelper.makeRequestId(
           await GovernanceLottery.keyHash(),
-          BigNumber.from(0),
-          GovernanceLottery.address,
+          await VRFRequestHelper.makeVRFInputSeed(
+            await GovernanceLottery.keyHash(),
+            BigNumber.from(0),
+            GovernanceLottery.address,
             BigNumber.from(0),
           ),
         )
@@ -612,32 +668,43 @@ describe('Start of tests', () => {
 
         GovernanceContract = await GovernanceContract.connect(whale)
 
-        const whaleBalance1 = await whale.getBalance()
-
-        const fpresponse = await GovernanceContract.finishProposalPreparation(id, overrides)
-        const fpreceipt = await fpresponse.wait()
-
-        const whaleBalance2 = await whale.getBalance()
-
-        console.log('\n', 'Finish proposal gas used: ', fpreceipt.cumulativeGasUsed.toString())
         console.log('RFR gas used: ', rfrreceipt.cumulativeGasUsed.toString())
-        console.log('Whale gas used: ' , whaleBalance1.sub(whaleBalance2).div(5).toString(),'\n')
 
         expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(2)
 
         console.log('*----＼(^＼)(／^)／--WINNING NUMBERS--＼(^＼)(／^)／----*')
-        for(let i =0; i < 10; i++) {
-          console.log((await GovernanceLottery.lotteryNumbers(id, i)).toString())
+        for (let i = 0; i < 10; i++) {
+          console.log(
+            (
+              await GovernanceLottery.expand(
+                await GovernanceLottery.randomNumbers(id),
+                BigNumber.from(i),
+                (await GovernanceLottery.getSqrtTornSumForProposal(id)).add(1),
+              )
+            ).toString(),
+          )
         }
         console.log('--------------------------------------------------', '\n')
 
         let claimGasSum = BigNumber.from(0)
+
         for (i = 0; i < 50; i++) {
-          let gov = await GovernanceContract.connect(signerArmy[i])
+          let govl = await GovernanceLottery.connect(signerArmy[i])
           const voterIndex = await GovernanceLottery.findUserIndex(id, signerArmy[i].address)
+
           let winIndex = -1
-          for(j = 0; j < 10; j++) {
-            if (await GovernanceLottery.checkIfAccountHasWon(id, voterIndex, j)) {
+          for (j = 0; j < 10; j++) {
+            if (
+              await GovernanceLottery.checkIfAccountHasWon(
+                id,
+                voterIndex,
+                await GovernanceLottery.expand(
+                  await GovernanceLottery.randomNumbers(id),
+                  BigNumber.from(j),
+                  (await GovernanceLottery.getSqrtTornSumForProposal(id)).add(1),
+                ),
+              )
+            ) {
               if (winIndex != -1) {
                 console.log('This account won twice! (one payout)')
               }
@@ -645,9 +712,14 @@ describe('Start of tests', () => {
             }
           }
           if (winIndex >= 0) {
-            const claimResponse = await gov.claimRewards(id, voterIndex, winIndex)
+            const claimResponse = await govl.claimRewards(id, voterIndex, winIndex)
             claimGasSum = claimGasSum.add((await claimResponse.wait()).cumulativeGasUsed)
-            console.log(`Account ${i} has won: `, (await TornToken.balanceOf(signerArmy[i].address)).toString(), ' With number index: ', winIndex)
+            console.log(
+              `Account ${i} has won: `,
+              (await TornToken.balanceOf(signerArmy[i].address)).toString(),
+              ' With number index: ',
+              winIndex,
+            )
           }
         }
         claimGasSum = claimGasSum.div(50)
