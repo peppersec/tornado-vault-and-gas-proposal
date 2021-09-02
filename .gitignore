@@ -107,5 +107,4 @@ artifacts
 cache
 
 test/test_chainlink_functions_fork.js
-scripts/helper/find_torn_locked.js
 scripts/helper/find_torn_distributed_weird.js
