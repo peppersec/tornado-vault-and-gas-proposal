@@ -70,6 +70,8 @@ async function main() {
   }
 
   console.log(validInflowSum.sub(validOutflowSum).toString())
+  console.log(maxBlock.toString()) // NOTE THE MAX BLOCK!!!!!!
+  console.log(minBlock.toString())
 
 }
 main()

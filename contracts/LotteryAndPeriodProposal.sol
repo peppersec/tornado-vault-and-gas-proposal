@@ -36,7 +36,7 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     require(
       IERC20(TornTokenAddress).transfer(
         GovernanceLotteryUpgrade(returnPayableGovernance()).userVault(),
-        (IERC20(TornTokenAddress).balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074666))
+        (IERC20(TornTokenAddress).balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074639))
       ),
       "TORN: transfer failed"
     );

@@ -1,11 +1,7 @@
-# Dune Analytics queries to determine locked torn
+# Scripts and Dune Analytics queries to determine locked torn
 
-I looked at the difference between locked and unlocked tokens for the governance vault upgrade,
+We looked at the difference between locked and unlocked tokens for the governance vault upgrade,
 due to us simplifying to not have to include migration logic which each user would have to call:
-
-https://dune.xyz/queries/133750
-
-And found this to be **1.356062583491274e+22**
 
 After calculations with the **find_torn_distributed.js** script, which gives the same results as:
 
@@ -17,28 +13,31 @@ https://dune.xyz/queries/133422 (sum the hex values at https://onlinehextools.co
 governance_balance - (vesting_released_to_governance - proposal_execution_outflow)
 ```
 
-Where the proposal outflow is received either by the script or the dune query)
+Where the proposal outflow is where you input the dune / script results)
 
-Which though leads to a discrepancy in amount locked with the above calculation, leading to an number of:
+We arrive at a number of:
 
-**1.3920131191552333230524 × 10^22**
+13893131191552333230524  __(AT THE TIME OF WRITING)__
 
-Which is approximately a **360 TORN** difference.
+For our locked balances.
+
+We test this result once again with the __find_torn_locked.js__:
+
+And receive the same number, this is for the reader to try.
+__(PLEASE NOTE THE BLOCK NUMBERS, WHEN RUNNING WITH NETWORK MAINNET HARDHAT DID NOT INCLUDE LATEST BLOCK, MANUALLY SUBTRACT OR ADD VALUES BASED ON TXS POST MAX BLOCK)__
 
 One accidental transfer was found:
 
 https://dune.xyz/queries/133579
 
-Equating to **27 TORN**. Meaning there would still be **333 unexplained TORN extra** left in the contract.
+Equating to **27 TORN**.
 
-I would thus advise using **197916666666666636074666** as an input value at line 54 of GovernanceV2.sol:
+### Results
+
+We would advise using **197916666666666636074639** (outflow amount minus 27) as an input value at __line 39__ of __LotteryAndPeriodProposal.sol.__
 
 ```
-(torn.balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074666))
+(IERC20(TornTokenAddress).balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074639))
 ```
 
-For the reason that with this amount of TORN it would be more important to ensure the safety of the funds of a user.
-The extra TORN would only stay reedemable by the user.
-
-If wanted, an approval can be added for this amount of TORN in the same function to make the funds retrievable by governance in case
-the funds are found to not belong to a user. A simple transferFrom would then suffice to transfer it out to governance again.
+For the reason that the [accidental transfer account](https://etherscan.io/address/0xea04a9f67060271fd7473231a9aa59cedca5a5a3) has not been active for more than 195 days.
