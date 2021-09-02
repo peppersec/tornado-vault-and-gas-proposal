@@ -30,8 +30,8 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     gasCompensationsLimit = _gasCompensationsLimit;
   }
 
-  function pauseOrUnpauseGasCompensations() external virtual override onlyMultisig {
-    gasCompensationsPaused = !gasCompensationsPaused;
+  function setGasCompensations(bool _paused) external virtual override onlyMultisig {
+    gasCompensationsPaused = _paused;
   }
 
   function castVote(uint256 proposalId, bool support)

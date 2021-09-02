@@ -12,8 +12,6 @@ import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 contract GovernanceV2 is Governance {
   using SafeMath for uint256;
 
-  address public constant GovernanceVesting = address(0x179f48C78f57A3A78f0608cC9197B8972921d1D2);
-
   // vault which stores user TORN
   address public immutable userVault;
 
@@ -27,8 +25,7 @@ contract GovernanceV2 is Governance {
   function unlock(uint256 amount) external override {
     require(getBlockTimestamp() > canWithdrawAfter[msg.sender], "Governance: tokens are locked");
     lockedBalance[msg.sender] = lockedBalance[msg.sender].sub(amount, "Governance: insufficient balance");
-    require(TornVault(userVault).withdrawTorn(amount), "withdrawTorn failed");
-    require(torn.transfer(msg.sender, amount), "TORN: transfer failed");
+    require(TornVault(userVault).withdrawTorn(msg.sender, amount), "withdrawTorn failed");
   }
 
   /// @notice checker for success on deployment
@@ -43,18 +40,5 @@ contract GovernanceV2 is Governance {
   function _transferTokens(address owner, uint256 amount) internal override {
     require(torn.transferFrom(owner, userVault, amount), "TORN: transferFrom failed");
     lockedBalance[owner] = lockedBalance[owner].add(amount);
-  }
-
-  /// @notice migrates TORN for both unlock() and _transferTokens (which is part of 2 lock functions)
-  function migrateTORN() internal {
-    require(!TornVault(userVault).balancesMigrated(), "balances migrated");
-    require(
-      torn.transfer(
-        userVault,
-        (torn.balanceOf(address(this))).sub(IGovernanceVesting(GovernanceVesting).released().sub(197916666666666636074666))
-      ),
-      "TORN: transfer failed"
-    );
-    TornVault(userVault).setBalancesMigrated();
   }
 }

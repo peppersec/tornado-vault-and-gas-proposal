@@ -35,6 +35,7 @@ async function main() {
 
   let validInflowSum = BigNumber.from(0);
   let validOutflowSum = BigNumber.from(0);
+  let maxBlock = 0, minBlock = 900000000;
 
   for (log of logsInflows) {
     const tx = await network.provider.request({
@@ -44,6 +45,11 @@ async function main() {
     const input = tx.input.slice(0,10)
     if (input == '0xb54426c8' || input == '0xf0b76892') {
       validInflowSum = validInflowSum.add(BigNumber.from(log.data));
+      if(log.blockNumber > maxBlock) {
+	      maxBlock = log.blockNumber;
+      } else if (log.blockNumber < minBlock) {
+	      minBlock = log.blockNumber;
+      }
     }
   }
 
@@ -55,6 +61,11 @@ async function main() {
     const input = tx.input.slice(0,10)
     if (input == '0x6198e339') {
       validOutflowSum = validOutflowSum.add(BigNumber.from(log.data));
+      if(log.blockNumber > maxBlock) {
+	      maxBlock = log.blockNumber;
+      } else if (log.blockNumber < minBlock) {
+	      minBlock = log.blockNumber;
+      }
     }
   }
 

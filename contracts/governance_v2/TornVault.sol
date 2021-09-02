@@ -10,19 +10,11 @@ import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformatio
 contract TornVault is ImmutableGovernanceInformation {
   using SafeERC20 for IERC20;
 
-  bool public balancesMigrated;
-
   /// @notice withdraws TORN from the contract
   /// @param amount amount to withdraw
   /// @return returns true on success
-  function withdrawTorn(uint256 amount) external onlyGovernance returns (bool) {
-    IERC20(TornTokenAddress).safeTransfer(GovernanceAddress, amount);
+  function withdrawTorn(address recipient, uint256 amount) external onlyGovernance returns (bool) {
+    IERC20(TornTokenAddress).safeTransfer(recipient, amount);
     return true;
-  }
-
-  /// @notice set balances to migrated
-  function setBalancesMigrated() external onlyGovernance {
-    require(!balancesMigrated, "already migrated");
-    balancesMigrated = true;
   }
 }

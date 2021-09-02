@@ -309,6 +309,7 @@ describe('Start of tests', () => {
         const whale0Balance = await TornToken.balanceOf(whales[0].address)
         const toTransfer = whale0Balance.sub(pE(10000)).div(50)
         let torn0 = await TornToken.connect(whales[0])
+	const oldBalance = await TornToken.balanceOf(await GovernanceContract.userVault());
         let lockedSum = BigNumber.from(0)
 
         for (i = 0; i < 50; i++) {
@@ -351,7 +352,7 @@ describe('Start of tests', () => {
         }
 
         const TornVault = await GovernanceContract.userVault()
-        expect(await TornToken.balanceOf(TornVault)).to.equal(lockedSum)
+        expect(await TornToken.balanceOf(TornVault)).to.equal(lockedSum.add(oldBalance))
 
         const gov = await GovernanceContract.connect(whales[0])
         await expect(torn0.approve(GovernanceContract.address, pE(10000))).to.not.be.reverted
@@ -529,7 +530,7 @@ describe('Start of tests', () => {
 
         ///////////////////////////////// VOTE WITHOUT COMPENSATION //////////////////////////////////////
         let etherUsedWithoutCompensation = []
-        await multiGov.pauseOrUnpauseGasCompensations()
+        await multiGov.setGasCompensations(true)
 
         for (i = 0; i < 50; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
@@ -549,7 +550,7 @@ describe('Start of tests', () => {
             .toString()
         }
 
-        await multiGov.pauseOrUnpauseGasCompensations()
+        await multiGov.setGasCompensations(false)
 
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
