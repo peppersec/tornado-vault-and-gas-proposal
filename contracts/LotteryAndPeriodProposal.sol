@@ -30,12 +30,12 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     address vault = address(new TornVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceLotteryUpgrade(basefeeLogic, lottery, vault)));
-    GovernanceLotteryUpgrade(returnPayableGovernance()).setVotingPeriod(votingPeriod);
+    GovernanceLotteryUpgrade(GovernanceAddress).setVotingPeriod(votingPeriod);
     IERC20(TornTokenAddress).approve(lottery, type(uint256).max);
 
     require(
       IERC20(TornTokenAddress).transfer(
-        GovernanceLotteryUpgrade(returnPayableGovernance()).userVault(),
+        GovernanceLotteryUpgrade(GovernanceAddress).userVault(),
         (IERC20(TornTokenAddress).balanceOf(address(this))).sub(
           IGovernanceVesting(GovernanceVesting).released().sub(
             120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18

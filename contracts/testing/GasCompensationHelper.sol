@@ -19,7 +19,7 @@ contract GasCompensationHelper {
 
   receive() external payable {}
 
-  function returnBasefee() external view returns (uint256) {
+  function getBasefee() external view returns (uint256) {
     return 5;
   }
 }

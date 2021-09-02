@@ -34,7 +34,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     );
   }
 
-  function receiveEther() external virtual payable returns (bool) {
+  function receiveEther() external payable virtual returns (bool) {
     return true;
   } // receive doesn't work with proxy for some reason
 

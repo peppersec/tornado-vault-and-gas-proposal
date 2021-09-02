@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 
 interface IPayableGovernance {
-  function receiveEther() external virtual payable returns (bool);
+  function receiveEther() external payable returns (bool);
 }
 
 contract GasCompensationHelper {
@@ -22,12 +22,14 @@ contract GasCompensationHelper {
   }
 
   function compensateGas(uint256 amount) external onlyGovernance {
-    IPayableGovernance(payable(GovernanceAddress)).receiveEther{value: (amount > address(this).balance) ? address(this).balance : amount}();
+    IPayableGovernance(payable(GovernanceAddress)).receiveEther{
+      value: (amount > address(this).balance) ? address(this).balance : amount
+    }();
   }
 
   receive() external payable {}
 
-  function returnBasefee() external view returns (uint256) {
+  function getBasefee() external view returns (uint256) {
     return block.basefee;
   }
 }

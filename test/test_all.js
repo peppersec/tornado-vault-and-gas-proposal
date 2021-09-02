@@ -115,7 +115,9 @@ describe('Start of tests', () => {
     signerArray = await ethers.getSigners()
     dore = signerArray[0]
 
-    GasCompensationFactory = await ethers.getContractFactory('contracts/testing/GasCompensationHelper.sol:GasCompensationHelper')
+    GasCompensationFactory = await ethers.getContractFactory(
+      'contracts/testing/GasCompensationHelper.sol:GasCompensationHelper',
+    )
     GasCompensationContract = await GasCompensationFactory.deploy()
 
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
@@ -166,7 +168,7 @@ describe('Start of tests', () => {
       it('Basefee logic should successfully return basefee', async () => {
         const latestBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
 
-        expect(await GasCompensationContract.returnBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
+        expect(await GasCompensationContract.getBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
       })
 
       it('Should successfully imitate chainlink VRF coordinator on mainnet', async () => {
@@ -368,7 +370,7 @@ describe('Start of tests', () => {
         await WETH.transfer(TornadoAuctionHandler.address, pE(100))
         await expect(() => TornadoAuctionHandler.convertAndTransferToGovernance()).to.changeEtherBalance(
           GovernanceContract,
-          pE(100)
+          pE(100),
         )
       })
 
@@ -418,7 +420,7 @@ describe('Start of tests', () => {
           'Torn balance of governance contract: ',
           (await TornToken.balanceOf(GovernanceContract.address)).toString(),
         )
-console.log("here")
+
         ////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
         let response, id, state
         ;[response, id, state] = await propose([whales[0], ProposalContract, 'LotteryUpgrade'])
@@ -432,7 +434,7 @@ console.log("here")
 
         ////////////////////////INCREMENT TO VOTING TIME////////////////////////
         await minewait((await GovernanceContract.VOTING_DELAY()).add(1).toNumber())
-console.log("here")
+
         /////////////////// PREPARE MULTISIG AND COMPENSATIONS
         let multiGov = await GovernanceContract.connect(tornadoMultisig)
         let multiTorn = await TornToken.connect(tornadoMultisig)
@@ -442,9 +444,7 @@ console.log("here")
         )
         multiLottery = multiLottery.connect(tornadoMultisig)
         await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
-console.log("here")
         await expect(multiGov.setGasCompensations(pE(500))).to.not.be.reverted
-console.log("here")
         ///////////////////////////// VOTE ////////////////////////////
         const overrides = {
           gasPrice: BigNumber.from(5),
@@ -459,7 +459,6 @@ console.log("here")
           value: pE(50),
         }
         await gov1.receiveEther(overrides1)
-console.log("here")
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
 
         for (i = 0; i < 50; i++) {
@@ -481,7 +480,6 @@ console.log("here")
           const receipt = await response.wait()
           gasUsedArray[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString()
         }
-console.log("here")
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
@@ -528,7 +526,6 @@ console.log("here")
         ///////////////////////////////// VOTE WITHOUT COMPENSATION //////////////////////////////////////
         let etherUsedWithoutCompensation = []
         await multiGov.setGasCompensations(pE(100000))
-console.log("here")
         for (i = 0; i < 50; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
           let randN = rand(i * 5, i * 6)
@@ -546,9 +543,7 @@ console.log("here")
             .mul(receipt.effectiveGasPrice)
             .toString()
         }
-console.log("here")
         await multiGov.setGasCompensations(pE(100))
-console.log("here")
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)

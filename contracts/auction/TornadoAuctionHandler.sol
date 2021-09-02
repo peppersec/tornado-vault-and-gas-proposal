@@ -8,7 +8,7 @@ import { IEasyAuction } from "./interfaces/IEasyAuction.sol";
 import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
 
 interface IPayableGovernance {
-  function receiveEther() external virtual payable returns (bool);
+  function receiveEther() external payable returns (bool);
 }
 
 contract TornadoAuctionHandler is ImmutableGovernanceInformation {
@@ -49,7 +49,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
     require(address(this).balance > 0, "something went wrong");
-    require(IPayableGovernance(returnPayableGovernance()).receiveEther{value: address(this).balance}(), "send failed");
+    require(IPayableGovernance(returnPayableGovernance()).receiveEther{ value: address(this).balance }(), "send failed");
   }
 
   receive() external payable {}
