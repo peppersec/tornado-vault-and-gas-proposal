@@ -4,7 +4,7 @@ To boost voting activity, one of our ideas is to compensate gas used for voting 
 Both for the castVote and castDelegatedVote functionality.
 
 To make this as smooth as possible, we will compensate users directly in __ETH__ (non-wrapped) for voting.
-The priority fee is not compensated for to make exploiting the compensations unnecessary and unprofitable.
+The priority fee is not compensated for, as to make exploiting the compensations unnecessary and unprofitable.
 
 In order to receive ETH, TORN will be auctioned off by the governance contract with the help of a auction helper 
 (see contracts/auction/TornadoAuctionHandler.sol).
@@ -18,6 +18,7 @@ This contract has two functionalities:
 This way, Governance does not need to handle WETH swap logic (would require extra logic) and ETH will be directly sent to the governance contract.
 
 The initializeAuction function takes a couple of parameters:
+
 ```
 function initializeAuction(
     uint256 _auctionEndDate,
@@ -28,6 +29,15 @@ function initializeAuction(
   ) external onlyGovernance {
 ```
 
-- _auctionEndDate -> the auction end date expressed in unix format
-- _auctionedSellAmount -> the amount of TORN to be sold for the auction
-- _minBuyAmount -> 
+- _auctionEndDate -> the auction end date expressed in unix format.
+- _auctionedSellAmount -> the amount of TORN to be sold in the auction.
+- _minBuyAmount -> minimum amount of buy tokens (ETH) we are willing to take for _auctionSellAmount of TORN, this simply definest the minimum price (_auctionSellAmount/_minBuyAmount).
+- _minBidPerOrder -> minimum buy amount per a single order (of tokens being auctioned), is also used to prevent users from buying too low amounts and hurting themselves.
+- _minFundingThreshold -> minimum amount of buy tokens (ETH) for the ENTIRE auction. if this is not reached, the auction reverts and all tokens are sent back to their original owners.
+
+This function does not take all the parameters for initializing the auction, some were left out of convenience as say:
+
+- Addresses of the tokens being bought/sold (ETH/TORN).
+- orderCancellationEndDate -> date until order can be cancelled. For us, this is 0, meaning orders can't be cancelled once set.
+- isAtomicClosureAllowed -> when auction end date is reached, a participant may set a last order in exchange for closing the auction, meaning it incentivizes the user to end the auction (gas payments, time saving) by giving him a risk-free action at the end. For us, true
+- Last two fields are for access management, we have no whitelist for the auction, thus redundant and set to 0 for us. 
