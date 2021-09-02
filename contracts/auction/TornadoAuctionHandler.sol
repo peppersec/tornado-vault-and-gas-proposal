@@ -5,8 +5,11 @@ pragma solidity ^0.6.12;
 import { IWETH } from "./interfaces/IWETH.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { IEasyAuction } from "./interfaces/IEasyAuction.sol";
-import { IGovernanceDepositInterface } from "./interfaces/IGovernanceDepositInterface.sol";
 import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
+
+interface IPayableGovernance {
+  function receiveEther() external virtual payable returns (bool);
+}
 
 contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   address public constant EasyAuctionAddress = address(0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101);
@@ -45,8 +48,8 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
 
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
-    require(address(this).balance >= 0 ether, "something went wrong");
-    IGovernanceDepositInterface(GovernanceAddress).depositEthereumForGasCompensations{ value: address(this).balance }();
+    require(address(this).balance > 0, "something went wrong");
+    IPayableGovernance(returnPayableGovernance()).receiveEther{value: address(this).balance}();
   }
 
   receive() external payable {}

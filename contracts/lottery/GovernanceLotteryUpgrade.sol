@@ -25,13 +25,18 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     _;
   }
 
-  function setGasCompensationsLimit(uint256 _gasCompensationsLimit) external virtual override onlyMultisig {
-    gasCompensationsLimit = _gasCompensationsLimit;
+  function setGasCompensations(uint256 _gasCompensationsLimit) external virtual override onlyMultisig {
+    require(
+      (_gasCompensationsLimit > address(this).balance)
+        ? payable(gasCompensationLogic).send(address(this).balance)
+        : payable(gasCompensationLogic).send(_gasCompensationsLimit),
+      "send failed"
+    );
   }
 
-  function setGasCompensations(bool _paused) external virtual override onlyMultisig {
-    gasCompensationsPaused = _paused;
-  }
+  function receiveEther() external virtual payable returns (bool) {
+    return true;
+  } // receive doesn't work with proxy for some reason
 
   function castVote(uint256 proposalId, bool support)
     external

@@ -115,14 +115,14 @@ describe('Start of tests', () => {
     signerArray = await ethers.getSigners()
     dore = signerArray[0]
 
-    BasefeeLogicFactory = await ethers.getContractFactory('contracts/testing/BasefeeLogic.sol:BasefeeLogic')
-    BasefeeLogicContract = await BasefeeLogicFactory.deploy()
+    GasCompensationFactory = await ethers.getContractFactory('contracts/testing/GasCompensationHelper.sol:GasCompensationHelper')
+    GasCompensationContract = await GasCompensationFactory.deploy()
 
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
 
     ProposalFactory = await ethers.getContractFactory('LotteryAndPeriodProposal')
 
-    ProposalContract = await ProposalFactory.deploy(BasefeeLogicContract.address, 260000)
+    ProposalContract = await ProposalFactory.deploy(GasCompensationContract.address, 260000)
 
     VRFRequestHelperFactory = await ethers.getContractFactory('VRFRequestHelper')
     VRFRequestHelper = await VRFRequestHelperFactory.deploy()
@@ -166,7 +166,7 @@ describe('Start of tests', () => {
       it('Basefee logic should successfully return basefee', async () => {
         const latestBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
 
-        expect(await BasefeeLogicContract.returnBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
+        expect(await GasCompensationContract.returnBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
       })
 
       it('Should successfully imitate chainlink VRF coordinator on mainnet', async () => {
@@ -368,7 +368,7 @@ describe('Start of tests', () => {
         await WETH.transfer(TornadoAuctionHandler.address, pE(100))
         await expect(() => TornadoAuctionHandler.convertAndTransferToGovernance()).to.changeEtherBalance(
           GovernanceContract,
-          pE(100),
+          pE(100)
         )
       })
 
