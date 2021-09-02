@@ -17,11 +17,11 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;
 
   address public constant GovernanceVesting = address(0x179f48C78f57A3A78f0608cC9197B8972921d1D2);
-  address public immutable basefeeLogic;
+  address public immutable gasCompLogic;
   uint256 public immutable votingPeriod;
 
-  constructor(address _basefeeLogic, uint256 _votingPeriod) public {
-    basefeeLogic = _basefeeLogic;
+  constructor(address _gasCompLogic, uint256 _votingPeriod) public {
+    gasCompLogic = _gasCompLogic;
     votingPeriod = _votingPeriod;
   }
 
@@ -29,7 +29,7 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     address lottery = address(new TornadoLottery());
     address vault = address(new TornVault());
 
-    LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceLotteryUpgrade(basefeeLogic, lottery, vault)));
+    LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault)));
     GovernanceLotteryUpgrade(GovernanceAddress).setVotingPeriod(votingPeriod);
     IERC20(TornTokenAddress).approve(lottery, type(uint256).max);
 

@@ -13,10 +13,10 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   event RegisterAccountReverted(uint256 proposalId, address account);
 
   constructor(
-    address _basefeeLogic,
+    address _gasCompLogic,
     address _lotteryLogic,
     address _userVault
-  ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_basefeeLogic) {
+  ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_gasCompLogic) {
     lotteryAddress = _lotteryLogic;
   }
 
