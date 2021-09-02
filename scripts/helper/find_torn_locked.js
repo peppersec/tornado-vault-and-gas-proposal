@@ -33,22 +33,23 @@ async function main() {
     ],
   })
 
-  let validInflowSum = BigNumber.from(0);
-  let validOutflowSum = BigNumber.from(0);
-  let maxBlock = 0, minBlock = 900000000;
+  let validInflowSum = BigNumber.from(0)
+  let validOutflowSum = BigNumber.from(0)
+  let maxBlock = 0,
+    minBlock = 900000000
 
   for (log of logsInflows) {
     const tx = await network.provider.request({
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],
     })
-    const input = tx.input.slice(0,10)
+    const input = tx.input.slice(0, 10)
     if (input == '0xb54426c8' || input == '0xf0b76892') {
-      validInflowSum = validInflowSum.add(BigNumber.from(log.data));
-      if(log.blockNumber > maxBlock) {
-	      maxBlock = log.blockNumber;
+      validInflowSum = validInflowSum.add(BigNumber.from(log.data))
+      if (log.blockNumber > maxBlock) {
+        maxBlock = log.blockNumber
       } else if (log.blockNumber < minBlock) {
-	      minBlock = log.blockNumber;
+        minBlock = log.blockNumber
       }
     }
   }
@@ -58,13 +59,13 @@ async function main() {
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],
     })
-    const input = tx.input.slice(0,10)
+    const input = tx.input.slice(0, 10)
     if (input == '0x6198e339') {
-      validOutflowSum = validOutflowSum.add(BigNumber.from(log.data));
-      if(log.blockNumber > maxBlock) {
-	      maxBlock = log.blockNumber;
+      validOutflowSum = validOutflowSum.add(BigNumber.from(log.data))
+      if (log.blockNumber > maxBlock) {
+        maxBlock = log.blockNumber
       } else if (log.blockNumber < minBlock) {
-	      minBlock = log.blockNumber;
+        minBlock = log.blockNumber
       }
     }
   }
@@ -72,6 +73,5 @@ async function main() {
   console.log(validInflowSum.sub(validOutflowSum).toString())
   console.log(maxBlock.toString()) // NOTE THE MAX BLOCK!!!!!!
   console.log(minBlock.toString())
-
 }
 main()

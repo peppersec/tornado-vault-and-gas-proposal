@@ -42,7 +42,7 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
   {
     bool votedAlready = hasAccountVoted(proposalId, msg.sender);
     _castVote(msg.sender, proposalId, support);
-    if(!votedAlready) {
+    if (!votedAlready) {
       _registerAccountWithLottery(proposalId, msg.sender);
     }
   }
@@ -56,14 +56,14 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
       require(delegatedTo[from[i]] == msg.sender, "Governance: not authorized");
       bool votedAlready = hasAccountVoted(proposalId, from[i]);
       _castVote(from[i], proposalId, support);
-      if(!votedAlready) {
+      if (!votedAlready) {
         _registerAccountWithLottery(proposalId, from[i]);
       }
     }
     if (lockedBalance[msg.sender] > 0) {
       bool votedAlready = hasAccountVoted(proposalId, msg.sender);
       _castVote(msg.sender, proposalId, support);
-      if(!votedAlready) {
+      if (!votedAlready) {
         _registerAccountWithLottery(proposalId, msg.sender);
       }
     }

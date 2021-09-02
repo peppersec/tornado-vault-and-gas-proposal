@@ -127,10 +127,7 @@ describe('Start of tests', () => {
     VRFRequestHelperFactory = await ethers.getContractFactory('VRFRequestHelper')
     VRFRequestHelper = await VRFRequestHelperFactory.deploy()
 
-    GovernanceContract = await ethers.getContractAt(
-      'Governance',
-      proxy_address,
-    )
+    GovernanceContract = await ethers.getContractAt('Governance', proxy_address)
     GnosisEasyAuction = await ethers.getContractAt(
       EasyAuctionJson.abi,
       '0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101',
@@ -309,7 +306,7 @@ describe('Start of tests', () => {
         const whale0Balance = await TornToken.balanceOf(whales[0].address)
         const toTransfer = whale0Balance.sub(pE(10000)).div(50)
         let torn0 = await TornToken.connect(whales[0])
-	const oldBalance = await TornToken.balanceOf(await GovernanceContract.userVault());
+        const oldBalance = await TornToken.balanceOf(await GovernanceContract.userVault())
         let lockedSum = BigNumber.from(0)
 
         for (i = 0; i < 50; i++) {
