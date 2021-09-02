@@ -29,9 +29,9 @@ function initializeAuction(
   ) external onlyGovernance {
 ```
 
-- _auctionEndDate -> the auction end date expressed in unix format.
+- _auctionEndDate -> the auction end date expressed in UNIX format.
 - _auctionedSellAmount -> the amount of TORN to be sold in the auction.
-- _minBuyAmount -> minimum amount of buy tokens (ETH) we are willing to take for _auctionSellAmount of TORN, this simply definest the minimum price (_auctionSellAmount/_minBuyAmount).
+- _minBuyAmount -> this variable helps to define the minimum price via the following formula: _auctionedSellAmount/_minBuyAmount, in other words the minimum amount of TORN per ETH.
 - _minBidPerOrder -> minimum buy amount per a single order (of tokens being auctioned), is also used to prevent users from buying too low amounts and hurting themselves.
 - _minFundingThreshold -> minimum amount of buy tokens (ETH) for the ENTIRE auction. if this is not reached, the auction reverts and all tokens are sent back to their original owners.
 

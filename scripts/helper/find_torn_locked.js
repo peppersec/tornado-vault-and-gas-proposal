@@ -33,17 +33,17 @@ async function main() {
     ],
   })
 
-  let validInflowLogs = []
-  let validOutflowLogs = []
+  let validInflowSum = BigNumber.from(0);
+  let validOutflowSum = BigNumber.from(0);
 
   for (log of logsInflows) {
     const tx = await network.provider.request({
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],
     })
-    const input = tx.input.slice(10)
+    const input = tx.input.slice(0,10)
     if (input == '0xb54426c8' || input == '0xf0b76892') {
-      validInflowLogs.push(log)
+      validInflowSum = validInflowSum.add(BigNumber.from(log.data));
     }
   }
 
@@ -52,13 +52,13 @@ async function main() {
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],
     })
-    const input = tx.input.slice(10)
+    const input = tx.input.slice(0,10)
     if (input == '0x6198e339') {
-      validOutflowLogs.push(log)
+      validOutflowSum = validOutflowSum.add(BigNumber.from(log.data));
     }
   }
 
-  console.log(validInflowLogs)
-  console.log(validOutflowLogs)
+  console.log(validInflowSum.sub(validOutflowSum).toString())
+
 }
 main()
