@@ -39,9 +39,7 @@ abstract contract GasCompensator {
     }
   }
 
-  function withdrawFromHelper(uint256 amount) external virtual {
-    IGasCompensationHelper(gasCompensationLogic).compensateGas(amount);
-  }
+  function withdrawFromHelper(uint256 amount) external virtual;
 
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual;
 

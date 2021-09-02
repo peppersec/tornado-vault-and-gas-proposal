@@ -4,7 +4,7 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import { GovernanceVaultUpgrade } from "../vault/GovernanceVaultUpgrade.sol";
-import { GasCompensator } from "../basefee/GasCompensator.sol";
+import { GasCompensator, IGasCompensationHelper } from "../basefee/GasCompensator.sol";
 import { ITornadoLottery } from "../interfaces/ITornadoLottery.sol";
 
 contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
@@ -32,6 +32,10 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
         : payable(gasCompensationLogic).send(_gasCompensationsLimit),
       "send failed"
     );
+  }
+
+  function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
+    IGasCompensationHelper(gasCompensationLogic).compensateGas(amount);
   }
 
   function receiveEther() external payable virtual returns (bool) {

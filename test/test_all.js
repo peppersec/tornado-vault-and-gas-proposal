@@ -122,7 +122,7 @@ describe('Start of tests', () => {
 
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
 
-    ProposalFactory = await ethers.getContractFactory('LotteryAndPeriodProposal')
+    ProposalFactory = await ethers.getContractFactory('LotteryAndVaultProposal')
 
     ProposalContract = await ProposalFactory.deploy(GasCompensationContract.address, 260000)
 
