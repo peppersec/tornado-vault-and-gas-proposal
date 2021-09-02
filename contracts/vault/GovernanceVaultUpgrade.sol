@@ -6,7 +6,6 @@ pragma experimental ABIEncoderV2;
 import { TornVault } from "./TornVault.sol";
 import { Governance } from "../Governance.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
-import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 
 /// @title Version 2 Governance contract of the tornado.cash governance
 contract GovernanceVaultUpgrade is Governance {

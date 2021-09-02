@@ -9,7 +9,7 @@ import { TornadoLottery } from "./lottery/TornadoLottery.sol";
 import { GovernanceLotteryUpgrade } from "./lottery/GovernanceLotteryUpgrade.sol";
 import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
 import { TornVault } from "./vault/TornVault.sol";
-import { IGovernanceVesting } from "./vault/interfaces/IGovernanceVesting.sol";
+import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
 import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
 
