@@ -2,7 +2,7 @@
 
 pragma solidity ^0.6.12;
 
-import { LotteryRandomNumberConsumer } from "../LotteryRandomNumberConsumer.sol";
+import { LotteryRandomNumberConsumer } from "../lottery/LotteryRandomNumberConsumer.sol";
 
 contract LRNCTestImplementation is LotteryRandomNumberConsumer {
   mapping(uint256 => uint256) randomResults;

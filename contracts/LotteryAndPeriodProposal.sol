@@ -3,15 +3,15 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
+import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { TornadoLottery } from "./TornadoLottery.sol";
-import { TornVault } from "./governance_v2/TornVault.sol";
-import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
+import { TornadoLottery } from "./lottery/TornadoLottery.sol";
+import { GovernanceLotteryUpgrade } from "./lottery/GovernanceLotteryUpgrade.sol";
+import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
+import { TornVault } from "./vault/TornVault.sol";
+import { IGovernanceVesting } from "./vault/interfaces/IGovernanceVesting.sol";
 import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
 import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
-import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
-import { IGovernanceVesting } from "./governance_v2/interfaces/IGovernanceVesting.sol";
-import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;

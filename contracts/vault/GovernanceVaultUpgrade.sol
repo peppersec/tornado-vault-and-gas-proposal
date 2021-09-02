@@ -9,7 +9,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 
 /// @title Version 2 Governance contract of the tornado.cash governance
-contract GovernanceV2 is Governance {
+contract GovernanceVaultUpgrade is Governance {
   using SafeMath for uint256;
 
   // vault which stores user TORN

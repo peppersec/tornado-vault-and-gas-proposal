@@ -115,7 +115,7 @@ describe('Start of tests', () => {
     signerArray = await ethers.getSigners()
     dore = signerArray[0]
 
-    BasefeeLogicFactory = await ethers.getContractFactory('contracts/testing/BASEFEE_LOGIC.sol:BASEFEE_LOGIC')
+    BasefeeLogicFactory = await ethers.getContractFactory('contracts/testing/BasefeeLogic.sol:BasefeeLogic')
     BasefeeLogicContract = await BasefeeLogicFactory.deploy()
 
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
@@ -166,7 +166,7 @@ describe('Start of tests', () => {
       it('Basefee logic should successfully return basefee', async () => {
         const latestBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
 
-        expect(await BasefeeLogicContract.RETURN_BASEFEE()).to.equal(latestBlock.baseFeePerGas.toString())
+        expect(await BasefeeLogicContract.returnBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
       })
 
       it('Should successfully imitate chainlink VRF coordinator on mainnet', async () => {

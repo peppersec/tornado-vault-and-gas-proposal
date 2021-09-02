@@ -2,16 +2,16 @@
 
 pragma solidity ^0.6.12;
 
-import { BASEFEE_PROXY } from "./BASEFEE_PROXY.sol";
+import { BasefeeProxy } from "./BasefeeProxy.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-abstract contract GasCompensator is BASEFEE_PROXY {
+abstract contract GasCompensator is BasefeeProxy {
   using SafeMath for uint256;
 
   bool public gasCompensationsPaused;
   uint256 public gasCompensationsLimit;
 
-  constructor(address _logic) public BASEFEE_PROXY(_logic) {}
+  constructor(address _logic) public BasefeeProxy(_logic) {}
 
   modifier gasCompensation(
     address account,
@@ -21,7 +21,7 @@ abstract contract GasCompensator is BASEFEE_PROXY {
     if (!gasCompensationsPaused && eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 toCompensate = startGas.sub(gasleft()).add(extra).mul(RETURN_BASEFEE());
+      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(returnBasefee());
 
       toCompensate = (toCompensate < gasCompensationsLimit) ? toCompensate : gasCompensationsLimit;
 

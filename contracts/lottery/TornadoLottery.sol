@@ -4,11 +4,11 @@ pragma solidity ^0.6.12;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { ABDKMath64x64 } from "./libraries/ABDKMath64x64.sol";
+import { ABDKMath64x64 } from "../libraries/ABDKMath64x64.sol";
 import { LotteryRandomNumberConsumer } from "./LotteryRandomNumberConsumer.sol";
 import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
-import { Governance } from "./Governance.sol";
-import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
+import { Governance } from "../Governance.sol";
+import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
 
 contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInformation {
   using SafeMath for uint96;
@@ -128,7 +128,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     uint256 voteIndex,
     uint256 lotteryNumber
   ) public view returns (bool) {
-    return (lotteryUserData[proposalId][voteIndex - 1].tornSqrt <= lotteryNumber &&
+    return (getSqrtTornForVoter(proposalId, int256(voteIndex) - 1) <= lotteryNumber &&
       lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
   }
 
@@ -144,17 +144,18 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     address account,
     uint96 accountVotes
   ) private {
-    if (lotteryUserData[proposalId].length == 0) {
-      lotteryUserData[proposalId].push(SingleUserVoteData(0, address(0)));
-    }
     lotteryUserData[proposalId].push(
       SingleUserVoteData(
         uint96(
-          _calculateSquareRoot(accountVotes).add(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt)
+          _calculateSquareRoot(accountVotes).add(getSqrtTornForVoter(proposalId, int256(lotteryUserData[proposalId].length) - 1))
         ),
         account
       )
     );
+  }
+
+  function getSqrtTornForVoter(uint256 proposalId, int256 voteIndex) private view returns (uint256) {
+    return (voteIndex >= 0) ? lotteryUserData[proposalId][uint256(voteIndex)].tornSqrt : 0;
   }
 
   function _checkIfProposalIsActive(uint256 proposalId) private view returns (bool) {

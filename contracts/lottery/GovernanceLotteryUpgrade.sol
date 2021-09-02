@@ -3,12 +3,11 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import { GovernanceV2 } from "./governance_v2/GovernanceV2.sol";
-import { GasCompensator } from "./basefee/GasCompensator.sol";
-import { ITornadoLottery } from "./interfaces/ITornadoLottery.sol";
+import { GovernanceVaultUpgrade } from "../vault/GovernanceVaultUpgrade.sol";
+import { GasCompensator } from "../basefee/GasCompensator.sol";
+import { ITornadoLottery } from "../interfaces/ITornadoLottery.sol";
 
-contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
-  address public constant TornadoMultisig = address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
+contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   address public immutable lotteryAddress;
 
   event RegisterAccountReverted(uint256 proposalId, address account);
@@ -17,12 +16,12 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     address _basefeeLogic,
     address _lotteryLogic,
     address _userVault
-  ) public GovernanceV2(_userVault) GasCompensator(_basefeeLogic) {
+  ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_basefeeLogic) {
     lotteryAddress = _lotteryLogic;
   }
 
   modifier onlyMultisig() {
-    require(msg.sender == TornadoMultisig, "only multisig");
+    require(msg.sender == returnMultisigAddress(), "only multisig");
     _;
   }
 
@@ -38,7 +37,7 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     external
     virtual
     override
-    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 21000)
+    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), (msg.sender == tx.origin ? 21e3 : 0))
   {
     bool votedAlready = hasAccountVoted(proposalId, msg.sender);
     _castVote(msg.sender, proposalId, support);
@@ -51,7 +50,16 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
     address[] memory from,
     uint256 proposalId,
     bool support
-  ) external virtual override gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), 0) {
+  )
+    external
+    virtual
+    override
+    gasCompensation(
+      msg.sender,
+      !hasAccountVoted(proposalId, msg.sender),
+      (msg.sender == tx.origin ? (lockedBalance[msg.sender] > 0 ? 21e3 : 20e3) : 0)
+    )
+  {
     for (uint256 i = 0; i < from.length; i++) {
       require(delegatedTo[from[i]] == msg.sender, "Governance: not authorized");
       bool votedAlready = hasAccountVoted(proposalId, from[i]);
@@ -77,6 +85,10 @@ contract GovernanceLotteryUpgrade is GovernanceV2, GasCompensator {
 
   function hasAccountVoted(uint256 proposalId, address account) public view returns (bool) {
     return proposals[proposalId].receipts[account].hasVoted;
+  }
+
+  function returnMultisigAddress() internal pure virtual returns (address) {
+    return address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
   }
 
   function _registerAccountWithLottery(uint256 proposalId, address account) private {
