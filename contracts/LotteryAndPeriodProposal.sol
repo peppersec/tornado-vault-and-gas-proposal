@@ -30,13 +30,17 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     address vault = address(new TornVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault)));
-    GovernanceLotteryUpgrade(GovernanceAddress).setVotingPeriod(votingPeriod);
+
+    GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(GovernanceAddress);
+    IERC20 tornToken = IERC20(TornTokenAddress);
+
+    newGovernance.setVotingPeriod(votingPeriod);
     IERC20(TornTokenAddress).approve(lottery, type(uint256).max);
 
     require(
-      IERC20(TornTokenAddress).transfer(
-        GovernanceLotteryUpgrade(GovernanceAddress).userVault(),
-        (IERC20(TornTokenAddress).balanceOf(address(this))).sub(
+      tornToken.transfer(
+        newGovernance.userVault(),
+        (tornToken.balanceOf(address(this))).sub(
           IGovernanceVesting(GovernanceVesting).released().sub(
             120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18
           )
@@ -46,7 +50,7 @@ contract LotteryAndPeriodProposal is ImmutableGovernanceInformation {
     );
 
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
-    IERC20(TornTokenAddress).transfer(address(auctionHandler), 100e18);
+    tornToken.transfer(address(auctionHandler), 100e18);
     // EXAMPLE NUMBERS
     auctionHandler.initializeAuction(1631743200, 100 ether, 151e16, 1 ether, 0);
   }
