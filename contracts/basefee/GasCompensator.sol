@@ -6,7 +6,7 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IGasCompensationHelper {
   function compensateGas(address recipient, uint256 amount) external;
-
+  function compensateGas(uint256 amount) external;
   function withdrawToGovernance(uint256 amount) external;
 
   function returnBasefee() external view returns (uint256);
@@ -38,7 +38,7 @@ abstract contract GasCompensator {
   }
 
   function withdrawFromHelper(uint256 amount) external virtual {
-    IGasCompensationHelper(gasCompensationLogic).compensateGas(address(this), amount);
+    IGasCompensationHelper(gasCompensationLogic).compensateGas(amount);
   }
 
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual;

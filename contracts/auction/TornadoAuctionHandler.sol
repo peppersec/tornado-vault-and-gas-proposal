@@ -49,7 +49,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
     require(address(this).balance > 0, "something went wrong");
-    IPayableGovernance(returnPayableGovernance()).receiveEther{value: address(this).balance}();
+    require(IPayableGovernance(returnPayableGovernance()).receiveEther{value: address(this).balance}(), "send failed");
   }
 
   receive() external payable {}

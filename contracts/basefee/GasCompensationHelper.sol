@@ -15,11 +15,14 @@ contract GasCompensationHelper {
   }
 
   function compensateGas(address recipient, uint256 amount) external onlyGovernance {
-    IPayableGovernance(payable(GovernanceAddress)).receiveEther{value: address(this).balance}();
     require(
       (amount > address(this).balance) ? payable(recipient).send(address(this).balance) : payable(recipient).send(amount),
       "compensation failed"
     );
+  }
+
+  function compensateGas(uint256 amount) external onlyGovernance {
+    IPayableGovernance(payable(GovernanceAddress)).receiveEther{value: (amount > address(this).balance) ? address(this).balance : amount}();
   }
 
   receive() external payable {}

@@ -418,7 +418,7 @@ describe('Start of tests', () => {
           'Torn balance of governance contract: ',
           (await TornToken.balanceOf(GovernanceContract.address)).toString(),
         )
-
+console.log("here")
         ////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
         let response, id, state
         ;[response, id, state] = await propose([whales[0], ProposalContract, 'LotteryUpgrade'])
@@ -432,7 +432,7 @@ describe('Start of tests', () => {
 
         ////////////////////////INCREMENT TO VOTING TIME////////////////////////
         await minewait((await GovernanceContract.VOTING_DELAY()).add(1).toNumber())
-
+console.log("here")
         /////////////////// PREPARE MULTISIG AND COMPENSATIONS
         let multiGov = await GovernanceContract.connect(tornadoMultisig)
         let multiTorn = await TornToken.connect(tornadoMultisig)
@@ -442,9 +442,9 @@ describe('Start of tests', () => {
         )
         multiLottery = multiLottery.connect(tornadoMultisig)
         await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
-
-        await expect(multiGov.setGasCompensationsLimit(pE(500))).to.not.be.reverted
-
+console.log("here")
+        await expect(multiGov.setGasCompensations(pE(500))).to.not.be.reverted
+console.log("here")
         ///////////////////////////// VOTE ////////////////////////////
         const overrides = {
           gasPrice: BigNumber.from(5),
@@ -458,8 +458,8 @@ describe('Start of tests', () => {
         const overrides1 = {
           value: pE(50),
         }
-        await gov1.depositEthereumForGasCompensations(overrides1)
-
+        await gov1.receiveEther(overrides1)
+console.log("here")
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
 
         for (i = 0; i < 50; i++) {
@@ -481,7 +481,7 @@ describe('Start of tests', () => {
           const receipt = await response.wait()
           gasUsedArray[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString()
         }
-
+console.log("here")
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
@@ -527,8 +527,8 @@ describe('Start of tests', () => {
 
         ///////////////////////////////// VOTE WITHOUT COMPENSATION //////////////////////////////////////
         let etherUsedWithoutCompensation = []
-        await multiGov.setGasCompensations(true)
-
+        await multiGov.setGasCompensations(pE(100000))
+console.log("here")
         for (i = 0; i < 50; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
           let randN = rand(i * 5, i * 6)
@@ -546,9 +546,9 @@ describe('Start of tests', () => {
             .mul(receipt.effectiveGasPrice)
             .toString()
         }
-
-        await multiGov.setGasCompensations(false)
-
+console.log("here")
+        await multiGov.setGasCompensations(pE(100))
+console.log("here")
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
