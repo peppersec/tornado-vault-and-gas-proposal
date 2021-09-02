@@ -41,15 +41,15 @@ This function does not take all the parameters for initializing the auction, the
 IEasyAuction(EasyAuctionAddress).initiateAuction(
       IERC20(TornTokenAddress),
       IERC20(WETHAddress),
-      0,
+      0, // orderCancellationEndDate
       _auctionEndDate,
       _auctionedSellAmount,
       _minBuyAmount,
       _minBidPerOrder,
       _minFundingThreshold,
-      true,
-      address(0x0000000000000000000000000000000000000000),
-      new bytes(0)
+      true, // isAtomicClosureAllowed
+      address(0x0000000000000000000000000000000000000000), // access
+      new bytes(0) // access
     );
 ```
 
