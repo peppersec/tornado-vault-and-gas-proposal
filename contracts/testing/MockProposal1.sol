@@ -5,7 +5,7 @@ pragma solidity ^0.6.12;
 import "../Governance.sol";
 
 contract MockProposal1 {
-  address public constant GovernanceAddress = address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
+  address public constant GovernanceAddress = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
 
   function executeProposal() external {
     Governance gov = Governance(GovernanceAddress);

@@ -3,7 +3,7 @@
 pragma solidity ^0.8.7;
 
 contract GasCompensationHelper {
-  address private constant GovernanceAddress = address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
+  address private constant GovernanceAddress = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
 
   modifier onlyGovernance() {
     require(msg.sender == GovernanceAddress, "only gov");
