@@ -48,7 +48,7 @@ The compliment to the above upgrade. Stores user TORN, does not keep records of 
 ### Additions and changes
 
 | Function/variable signature | is addition or change? | access | describe significance |
-| ----- | ----- | ---- |
+| ----- | ----- | ---- | ----- |
 | ```address immutable lotteryAddress``` | addition | public | address of the governance lottery contract |
 | ```setGasCompensations(uint256)``` | addition | onlyMultisig | transfer a certain amount of ethereum to the gas compensation helper contract |
 | ```withdrawFromHelper(uint256)``` | addition | onlyMultisig | remove a certain amount of ethereum from the gas compensation helper contract |
