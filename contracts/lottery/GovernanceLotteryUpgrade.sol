@@ -28,14 +28,14 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual override onlyMultisig {
     require(
       (_gasCompensationsLimit > address(this).balance)
-        ? payable(gasCompensationLogic).send(address(this).balance)
-        : payable(gasCompensationLogic).send(_gasCompensationsLimit),
+        ? payable(address(gasCompensationLogic)).send(address(this).balance)
+        : payable(address(gasCompensationLogic)).send(_gasCompensationsLimit),
       "send failed"
     );
   }
 
   function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
-    IGasCompensationHelper(gasCompensationLogic).compensateGas(amount);
+    IGasCompensationHelper(gasCompensationLogic).withdrawToGovernance(amount);
   }
 
   function receiveEther() external payable virtual returns (bool) {

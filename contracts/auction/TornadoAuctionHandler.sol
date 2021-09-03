@@ -12,8 +12,8 @@ interface IPayableGovernance {
 }
 
 contract TornadoAuctionHandler is ImmutableGovernanceInformation {
-  address public constant EasyAuctionAddress = address(0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101);
-  address public constant WETHAddress = address(0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2);
+  address public constant EasyAuctionAddress = 0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101;
+  address public constant WETHAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
   event TornadoAuctionHandlerCreated(address indexed _handler);
 
@@ -49,7 +49,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
     require(address(this).balance > 0, "something went wrong");
-    require(IPayableGovernance(returnPayableGovernance()).receiveEther{ value: address(this).balance }(), "send failed");
+    require(IPayableGovernance(GovernanceAddress).receiveEther{ value: address(this).balance }(), "send failed");
   }
 
   receive() external payable {}

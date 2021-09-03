@@ -16,7 +16,7 @@ import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol
 contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;
 
-  address public constant GovernanceVesting = address(0x179f48C78f57A3A78f0608cC9197B8972921d1D2);
+  address public constant GovernanceVesting = 0x179f48C78f57A3A78f0608cC9197B8972921d1D2;
   address public immutable gasCompLogic;
   uint256 public immutable votingPeriod;
 

@@ -7,7 +7,7 @@ interface IPayableGovernance {
 }
 
 contract GasCompensationHelper {
-  address private constant GovernanceAddress = address(0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce);
+  address private constant GovernanceAddress = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
 
   modifier onlyGovernance() {
     require(msg.sender == GovernanceAddress, "only gov");
@@ -22,7 +22,7 @@ contract GasCompensationHelper {
     );
   }
 
-  function compensateGas(uint256 amount) external onlyGovernance {
+  function withdrawToGovernance(uint256 amount) external onlyGovernance {
     IPayableGovernance(payable(GovernanceAddress)).receiveEther{
       value: (amount > address(this).balance) ? address(this).balance : amount
     }();
