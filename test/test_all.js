@@ -116,7 +116,7 @@ describe('Start of tests', () => {
     dore = signerArray[0]
 
     GasCompensationFactory = await ethers.getContractFactory(
-      'contracts/testing/GasCompensationHelper.sol:GasCompensationHelper',
+      'contracts/testing/GasCompensationVault.sol:GasCompensationVault',
     )
     GasCompensationContract = await GasCompensationFactory.deploy()
 
@@ -414,7 +414,8 @@ describe('Start of tests', () => {
 
       it('Test multiple accounts proposal', async () => {
         ProposalContract = await MockProposalFactory.deploy()
-        const lotteryAddress = await GovernanceContract.lotteryAddress()
+        const lotteryAddress = await GovernanceContract.lottery()
+	console.log(lotteryAddress)
         const GovernanceLottery = await ethers.getContractAt('TornadoLottery', lotteryAddress)
         clog(
           'Torn balance of governance contract: ',
@@ -424,7 +425,6 @@ describe('Start of tests', () => {
         ////////////// STANDARD PROPOSAL ARGS TEST //////////////////////
         let response, id, state
         ;[response, id, state] = await propose([whales[0], ProposalContract, 'LotteryUpgrade'])
-
         const { events } = await response.wait()
         const args = events.find(({ event }) => event == 'ProposalCreated').args
         expect(args.id).to.be.equal(id)
@@ -440,7 +440,7 @@ describe('Start of tests', () => {
         let multiTorn = await TornToken.connect(tornadoMultisig)
         let multiLottery = await ethers.getContractAt(
           'TornadoLottery',
-          await GovernanceContract.lotteryAddress(),
+          await GovernanceContract.lottery(),
         )
         multiLottery = multiLottery.connect(tornadoMultisig)
         await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
@@ -460,7 +460,6 @@ describe('Start of tests', () => {
         }
         await gov1.receiveEther(overrides1)
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
-
         for (i = 0; i < 50; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
           let randN = rand(i * 5, i * 6)
@@ -483,7 +482,6 @@ describe('Start of tests', () => {
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
-
         ///////////////////////////// VOTER INFO ///////////////////////////////////
         // (uncomment for more data)
         /*
@@ -594,7 +592,6 @@ describe('Start of tests', () => {
           '--------------------------------------------------------------------',
           '\n',
         )
-
         /////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
         expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(0)
 
@@ -609,7 +606,6 @@ describe('Start of tests', () => {
         // FAIL PREPARE
         await expect(multiLottery.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to
           .be.reverted
-
         /////////////////////////////// INCREMENT AGAIN //////////////////////////////////
         await minewait(
           (
@@ -655,7 +651,6 @@ describe('Start of tests', () => {
             BigNumber.from(0),
           ),
         )
-
         const rfrresponse = await vrfGov.rawFulfillRandomness(rId, someHex[1])
         const rfrreceipt = await rfrresponse.wait()
 
@@ -678,9 +673,7 @@ describe('Start of tests', () => {
           )
         }
         console.log('--------------------------------------------------', '\n')
-
         let claimGasSum = BigNumber.from(0)
-
         for (i = 0; i < 50; i++) {
           let govl = await GovernanceLottery.connect(signerArmy[i])
           const voterIndex = await GovernanceLottery.findUserIndex(id, signerArmy[i].address)

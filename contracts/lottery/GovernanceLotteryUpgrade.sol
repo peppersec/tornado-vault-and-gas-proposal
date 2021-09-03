@@ -4,24 +4,28 @@ pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
 import { GovernanceVaultUpgrade } from "../vault/GovernanceVaultUpgrade.sol";
-import { GasCompensator, IGasCompensationHelper } from "../basefee/GasCompensator.sol";
+import { GasCompensator, IGasCompensationVault } from "../basefee/GasCompensator.sol";
 import { ITornadoLottery } from "../interfaces/ITornadoLottery.sol";
+import { ITornadoVault } from "../interfaces/ITornadoVault.sol";
 
 contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
-  address public immutable lotteryAddress;
+  ITornadoLottery public immutable lottery;
+  address public immutable multisigAddress;
 
   event RegisterAccountReverted(uint256 proposalId, address account);
 
   constructor(
     address _gasCompLogic,
-    address _lotteryLogic,
-    address _userVault
+    ITornadoLottery _lotteryLogic,
+    ITornadoVault _userVault,
+    address _multisigAddress
   ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_gasCompLogic) {
-    lotteryAddress = _lotteryLogic;
+    lottery = _lotteryLogic;
+    multisigAddress = _multisigAddress;
   }
 
   modifier onlyMultisig() {
-    require(msg.sender == returnMultisigAddress(), "only multisig");
+    require(msg.sender == multisigAddress, "only multisig");
     _;
   }
 
@@ -35,7 +39,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
-    IGasCompensationHelper(gasCompensationLogic).withdrawToGovernance(amount);
+    IGasCompensationVault(gasCompensationLogic).withdrawToGovernance(amount);
   }
 
   function receiveEther() external payable virtual returns (bool) {
@@ -96,13 +100,9 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     return proposals[proposalId].receipts[account].hasVoted;
   }
 
-  function returnMultisigAddress() internal pure virtual returns (address) {
-    return address(0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4);
-  }
-
   function _registerAccountWithLottery(uint256 proposalId, address account) private {
     try
-      ITornadoLottery(lotteryAddress).registerAccountWithLottery(
+      lottery.registerAccountWithLottery(
         proposalId,
         account,
         uint96(proposals[proposalId].receipts[account].votes)

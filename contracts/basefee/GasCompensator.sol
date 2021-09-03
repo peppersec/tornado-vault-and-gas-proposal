@@ -4,7 +4,7 @@ pragma solidity ^0.6.12;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
-interface IGasCompensationHelper {
+interface IGasCompensationVault {
   function compensateGas(address recipient, uint256 amount) external;
   function withdrawToGovernance(uint256 amount) external;
   function getBasefee() external view returns (uint256);
@@ -13,10 +13,10 @@ interface IGasCompensationHelper {
 abstract contract GasCompensator {
   using SafeMath for uint256;
 
-  IGasCompensationHelper public immutable gasCompensationLogic;
+  IGasCompensationVault public immutable gasCompensationLogic;
 
   constructor(address _gasCompensationLogic) public {
-    gasCompensationLogic = IGasCompensationHelper(_gasCompensationLogic);
+    gasCompensationLogic = IGasCompensationVault(_gasCompensationLogic);
   }
 
   modifier gasCompensation(

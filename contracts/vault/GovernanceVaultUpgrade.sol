@@ -3,19 +3,19 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import { TornVault } from "./TornVault.sol";
 import { Governance } from "../Governance.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
+import { ITornadoVault } from "../interfaces/ITornadoVault.sol";
 
 /// @title Version 2 Governance contract of the tornado.cash governance
 contract GovernanceVaultUpgrade is Governance {
   using SafeMath for uint256;
 
   // vault which stores user TORN
-  address public immutable userVault;
+  ITornadoVault public immutable userVault;
 
   // call Governance v1 constructor
-  constructor(address _userVault) public Governance() {
+  constructor(ITornadoVault _userVault) public Governance() {
     userVault = _userVault;
   }
 
@@ -24,7 +24,7 @@ contract GovernanceVaultUpgrade is Governance {
   function unlock(uint256 amount) external override {
     require(getBlockTimestamp() > canWithdrawAfter[msg.sender], "Governance: tokens are locked");
     lockedBalance[msg.sender] = lockedBalance[msg.sender].sub(amount, "Governance: insufficient balance");
-    TornVault(userVault).withdrawTorn(msg.sender, amount);
+    userVault.withdrawTorn(msg.sender, amount);
   }
 
   /// @notice checker for success on deployment
@@ -37,7 +37,7 @@ contract GovernanceVaultUpgrade is Governance {
   /// @param owner account/contract which (this) spender will send to the user vault
   /// @param amount amount which spender will send to the user vault
   function _transferTokens(address owner, uint256 amount) internal override {
-    require(torn.transferFrom(owner, userVault, amount), "TORN: transferFrom failed");
+    require(torn.transferFrom(owner, address(userVault), amount), "TORN: transferFrom failed");
     lockedBalance[owner] = lockedBalance[owner].add(amount);
   }
 }

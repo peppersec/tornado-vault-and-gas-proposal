@@ -59,7 +59,6 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     address account,
     uint96 accountVotes
   ) external onlyGovernance {
-    require(_checkIfAccountHasVoted(proposalId, account), "Account has not voted");
     _registerUserData(proposalId, account, accountVotes);
   }
 
@@ -169,10 +168,6 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   function _checkIfProposalIsFinished(uint256 proposalId) private view returns (bool) {
     return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Defeated ||
       GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Executed);
-  }
-
-  function _checkIfAccountHasVoted(uint256 proposalId, address account) private view returns (bool) {
-    return GovernanceLotteryUpgrade(GovernanceAddress).hasAccountVoted(proposalId, account);
   }
 
   function _checkIfProposalIsReadyForPayouts(uint256 proposalId) private view returns (bool) {
