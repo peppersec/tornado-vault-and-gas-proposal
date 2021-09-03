@@ -24,7 +24,7 @@ contract GovernanceVaultUpgrade is Governance {
   function unlock(uint256 amount) external override {
     require(getBlockTimestamp() > canWithdrawAfter[msg.sender], "Governance: tokens are locked");
     lockedBalance[msg.sender] = lockedBalance[msg.sender].sub(amount, "Governance: insufficient balance");
-    require(TornVault(userVault).withdrawTorn(msg.sender, amount), "withdrawTorn failed");
+    TornVault(userVault).withdrawTorn(msg.sender, amount);
   }
 
   /// @notice checker for success on deployment

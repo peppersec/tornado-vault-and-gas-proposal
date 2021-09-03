@@ -42,7 +42,7 @@ module.exports = {
       },
     ],
     overrides: {
-      'contracts/LotteryAndPeriodProposal.sol': {
+      'contracts/LotteryAndVaultProposal.sol': {
         version: '0.6.12',
         settings: {
           optimizer: {

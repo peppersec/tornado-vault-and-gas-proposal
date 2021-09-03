@@ -12,9 +12,7 @@ contract TornVault is ImmutableGovernanceInformation {
 
   /// @notice withdraws TORN from the contract
   /// @param amount amount to withdraw
-  /// @return returns true on success
-  function withdrawTorn(address recipient, uint256 amount) external onlyGovernance returns (bool) {
+  function withdrawTorn(address recipient, uint256 amount) external onlyGovernance {
     IERC20(TornTokenAddress).safeTransfer(recipient, amount);
-    return true;
   }
 }
