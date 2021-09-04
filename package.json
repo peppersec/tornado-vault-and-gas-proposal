@@ -10,7 +10,10 @@
     "eslint": "eslint --ext .js --ignore-path .gitignore .",
     "prettier:check": "prettier --check . --config .prettierrc",
     "prettier:fix": "prettier --write . --config .prettierrc",
-    "lint": "yarn eslint && yarn prettier:check"
+    "lint": "yarn eslint && yarn prettier:check",
+    "deploy": "yarn hardhat --network mainnet deploy_proposal --voting-period",
+    "deploy:test": "yarn hardhat --network goerli deploy_proposal --voting-period",
+    "test": "yarn hardhat test test/test_all"
   },
   "dependencies": {
     "@chainlink/contracts": "^0.2.1",

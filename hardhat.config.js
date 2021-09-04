@@ -6,6 +6,8 @@ require('hardhat-spdx-license-identifier')
 require('hardhat-storage-layout')
 require('hardhat-log-remover')
 require('hardhat-contract-sizer')
+
+require('./tasks/deploy_proposal.js')
 /**
  * @type import('hardhat/config').HardhatUserConfig
  */
