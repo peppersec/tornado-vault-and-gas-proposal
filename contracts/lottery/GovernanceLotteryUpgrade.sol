@@ -16,11 +16,11 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
 
   constructor(
     address _gasCompLogic,
-    ITornadoLottery _lotteryLogic,
-    ITornadoVault _userVault,
+    address _lotteryLogic,
+    address _userVault,
     address _multisigAddress
   ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_gasCompLogic) {
-    lottery = _lotteryLogic;
+    lottery = ITornadoLottery(_lotteryLogic);
     multisigAddress = _multisigAddress;
   }
 
@@ -29,17 +29,17 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     _;
   }
 
-  function setGasCompensations(uint256 _gasCompensationsLimit) external virtual override onlyMultisig {
+  function setGasCompensations(uint256 gasCompensationsLimit) external virtual override onlyMultisig {
     require(
-      (_gasCompensationsLimit > address(this).balance)
-        ? payable(address(gasCompensationLogic)).send(address(this).balance)
-        : payable(address(gasCompensationLogic)).send(_gasCompensationsLimit),
+      (gasCompensationsLimit > address(this).balance)
+        ? payable(address(gasCompensationVault)).send(address(this).balance)
+        : payable(address(gasCompensationVault)).send(gasCompensationsLimit),
       "send failed"
     );
   }
 
   function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
-    IGasCompensationVault(gasCompensationLogic).withdrawToGovernance(amount);
+    gasCompensationVault.withdrawToGovernance(amount);
   }
 
   function receiveEther() external payable virtual returns (bool) {

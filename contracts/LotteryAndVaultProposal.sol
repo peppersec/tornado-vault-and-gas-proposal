@@ -7,8 +7,6 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
 
-import { ITornadoLottery } from "./interfaces/ITornadoLottery.sol";
-import { ITornadoVault } from "./interfaces/ITornadoVault.sol";
 import { TornadoLottery } from "./lottery/TornadoLottery.sol";
 import { TornadoVault } from "./vault/TornadoVault.sol";
 
@@ -31,8 +29,8 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
   }
 
   function executeProposal() external {
-    ITornadoLottery lottery = ITornadoLottery(address(new TornadoLottery()));
-    ITornadoVault vault = ITornadoVault(address(new TornadoVault()));
+    address lottery = address(new TornadoLottery());
+    address vault = address(new TornadoVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(
 	    address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault, MultisigAddress))

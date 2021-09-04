@@ -34,7 +34,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     uint248 proposalRewardPerWinner;
   }
 
-  uint256 public LOTTERY_WINNERS = 10;
+  uint256 public constant LOTTERY_WINNERS = 10;
 
   mapping(uint256 => SingleUserVoteData[]) public lotteryUserData;
   mapping(uint256 => ProposalData) public proposalsData;
@@ -44,8 +44,8 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   constructor()
     public
     LotteryRandomNumberConsumer(
-      address(0xf0d54349aDdcf704F77AE15b96510dEA15cb7952),
-      address(0x514910771AF9Ca656af840dff83E8264EcF986CA),
+      0xf0d54349aDdcf704F77AE15b96510dEA15cb7952,
+      0x514910771AF9Ca656af840dff83E8264EcF986CA,
       bytes32(0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445),
       (2 * (10**18))
     )
@@ -127,7 +127,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     uint256 voteIndex,
     uint256 lotteryNumber
   ) public view returns (bool) {
-    return (getSqrtTornForVoter(proposalId, int256(voteIndex) - 1) <= lotteryNumber &&
+    return (_getSqrtTornForVoter(proposalId, int256(voteIndex) - 1) <= lotteryNumber &&
       lotteryNumber < lotteryUserData[proposalId][voteIndex].tornSqrt);
   }
 
@@ -146,14 +146,14 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     lotteryUserData[proposalId].push(
       SingleUserVoteData(
         uint96(
-          _calculateSquareRoot(accountVotes).add(getSqrtTornForVoter(proposalId, int256(lotteryUserData[proposalId].length) - 1))
+          _calculateSquareRoot(accountVotes).add(_getSqrtTornForVoter(proposalId, int256(lotteryUserData[proposalId].length) - 1))
         ),
         account
       )
     );
   }
 
-  function getSqrtTornForVoter(uint256 proposalId, int256 voteIndex) private view returns (uint256) {
+  function _getSqrtTornForVoter(uint256 proposalId, int256 voteIndex) private view returns (uint256) {
     return (voteIndex >= 0) ? lotteryUserData[proposalId][uint256(voteIndex)].tornSqrt : 0;
   }
 

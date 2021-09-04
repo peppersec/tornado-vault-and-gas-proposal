@@ -15,8 +15,8 @@ contract GovernanceVaultUpgrade is Governance {
   ITornadoVault public immutable userVault;
 
   // call Governance v1 constructor
-  constructor(ITornadoVault _userVault) public Governance() {
-    userVault = _userVault;
+  constructor(address _userVault) public Governance() {
+    userVault = ITornadoVault(_userVault);
   }
 
   /// @notice Withdraws TORN from governance if conditions permit

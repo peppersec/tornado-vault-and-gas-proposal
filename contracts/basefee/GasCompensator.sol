@@ -13,10 +13,10 @@ interface IGasCompensationVault {
 abstract contract GasCompensator {
   using SafeMath for uint256;
 
-  IGasCompensationVault public immutable gasCompensationLogic;
+  IGasCompensationVault public immutable gasCompensationVault;
 
-  constructor(address _gasCompensationLogic) public {
-    gasCompensationLogic = IGasCompensationVault(_gasCompensationLogic);
+  constructor(address _gasCompensationVault) public {
+    gasCompensationVault = IGasCompensationVault(_gasCompensationVault);
   }
 
   modifier gasCompensation(
@@ -27,9 +27,9 @@ abstract contract GasCompensator {
     if (eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(returnBasefee());
+      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(_returnBasefee());
 
-      gasCompensationLogic.compensateGas(account, toCompensate);
+      gasCompensationVault.compensateGas(account, toCompensate);
     } else {
       _;
     }
@@ -39,7 +39,7 @@ abstract contract GasCompensator {
 
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual;
 
-  function returnBasefee() internal view returns (uint256) {
-    return gasCompensationLogic.getBasefee();
+  function _returnBasefee() internal view returns (uint256) {
+    return gasCompensationVault.getBasefee();
   }
 }
