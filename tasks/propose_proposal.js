@@ -4,11 +4,11 @@ const { task } = require('hardhat/config')
 task('propose_proposal', 'propose proposal that uses factory')
   .addParam('proposalAddress', 'address of proposal')
   .setAction(async (taskArgs, hre) => {
-    const proposalName = "lottery-and-vault-proposal"
+    const proposalName = 'lottery-and-vault-proposal'
 
     const GovernanceContract = await hre.ethers.getContractAt(
       'Governance',
-      '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce'
+      '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce',
     )
     await GovernanceContract.propose(taskArgs.proposalAddress, proposalName)
 

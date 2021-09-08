@@ -7,6 +7,7 @@ import { GovernanceVaultUpgrade } from "../vault/GovernanceVaultUpgrade.sol";
 import { GasCompensator, IGasCompensationVault } from "../basefee/GasCompensator.sol";
 import { ITornadoLottery } from "../interfaces/ITornadoLottery.sol";
 import { ITornadoVault } from "../interfaces/ITornadoVault.sol";
+import { Math } from "@openzeppelin/contracts/math/Math.sol";
 
 contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   ITornadoLottery public immutable lottery;
@@ -30,12 +31,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   function setGasCompensations(uint256 gasCompensationsLimit) external virtual override onlyMultisig {
-    require(
-      (gasCompensationsLimit > address(this).balance)
-        ? payable(address(gasCompensationVault)).send(address(this).balance)
-        : payable(address(gasCompensationVault)).send(gasCompensationsLimit),
-      "send failed"
-    );
+    require(payable(address(gasCompensationVault)).send(Math.min(gasCompensationsLimit, address(this).balance)));
   }
 
   function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
@@ -55,7 +51,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     bool votedAlready = hasAccountVoted(proposalId, msg.sender);
     _castVote(msg.sender, proposalId, support);
     if (!votedAlready) {
-      _registerAccountWithLottery(proposalId, msg.sender);
+      _registerLotteryAccount(proposalId, msg.sender);
     }
   }
 
@@ -78,14 +74,14 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
       bool votedAlready = hasAccountVoted(proposalId, from[i]);
       _castVote(from[i], proposalId, support);
       if (!votedAlready) {
-        _registerAccountWithLottery(proposalId, from[i]);
+        _registerLotteryAccount(proposalId, from[i]);
       }
     }
     if (lockedBalance[msg.sender] > 0) {
       bool votedAlready = hasAccountVoted(proposalId, msg.sender);
       _castVote(msg.sender, proposalId, support);
       if (!votedAlready) {
-        _registerAccountWithLottery(proposalId, msg.sender);
+        _registerLotteryAccount(proposalId, msg.sender);
       }
     }
   }
@@ -100,9 +96,9 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     return proposals[proposalId].receipts[account].hasVoted;
   }
 
-  function _registerAccountWithLottery(uint256 proposalId, address account) private {
+  function _registerLotteryAccount(uint256 proposalId, address account) private {
     try
-      lottery.registerAccountWithLottery(
+      lottery.registerLotteryAccount(
         proposalId,
         account,
         uint96(proposals[proposalId].receipts[account].votes)

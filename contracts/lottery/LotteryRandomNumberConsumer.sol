@@ -8,24 +8,21 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
   mapping(uint256 => uint256) public randomNumbers;
   uint256 public idForLatestRandomNumber;
   bytes32 public keyHash;
-  uint256 internal fee;
 
   constructor(
     address _vrfCoordinator,
     address _link,
-    bytes32 _keyHash,
-    uint256 _fee
+    bytes32 _keyHash
   ) public VRFConsumerBase(_vrfCoordinator, _link) {
     keyHash = _keyHash;
-    fee = _fee;
   }
 
   /**
    * Requests randomness
    */
-  function getRandomNumber() internal returns (bytes32) {
-    require(LINK.balanceOf(address(this)) >= fee, "Not enough LINK - fill contract");
-    requestRandomness(keyHash, fee);
+  function getRandomNumber(uint256 _fee) internal returns (bytes32) {
+    require(LINK.balanceOf(address(this)) >= _fee, "Not enough LINK - fill contract");
+    requestRandomness(keyHash, _fee);
   }
 
   /**

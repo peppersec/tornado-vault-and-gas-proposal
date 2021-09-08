@@ -40,21 +40,29 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   mapping(uint256 => ProposalData) public proposalsData;
 
   LotteryState public lotteryState;
-
+  
+  /**
+  @dev Order of arguments in constructor for LotteryConsumerBase which takes data for Chainlink VRFConsumerBase:
+    LotteryRandomNumberConsumer(
+      VRF_COORDINATOR_ADDRESS,
+      CHAINLINK_TOKEN_ADDRESS,
+      KEY_HASH
+    )
+  All data is valid ONLY for Ethereum Mainnet.
+  */
   constructor()
     public
     LotteryRandomNumberConsumer(
       0xf0d54349aDdcf704F77AE15b96510dEA15cb7952,
       0x514910771AF9Ca656af840dff83E8264EcF986CA,
-      bytes32(0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445),
-      (2 * (10**18))
+      bytes32(0xAA77729D3466CA35AE8D28B3BBAC7CC36A5031EFDC430821C02BC31A238AF445)
     )
     ImmutableGovernanceInformation()
   {
     lotteryState = LotteryState.Idle;
   }
 
-  function registerAccountWithLottery(
+  function registerLotteryAccount(
     uint256 proposalId,
     address account,
     uint96 accountVotes
@@ -62,9 +70,10 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     _registerUserData(proposalId, account, accountVotes);
   }
 
-  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards) external onlyMultisig {
+  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards, uint256 _fee) external onlyMultisig {
     require(_checkIfProposalIsFinished(proposalId), "proposal not finished");
     require(lotteryState == LotteryState.Idle, "preparing another proposal");
+    require(proposalRewards <= 1e21, "reward limit");
 
     lotteryState = LotteryState.PreparingProposalForPayouts;
     proposalsData[proposalId] = ProposalData(
@@ -73,7 +82,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     );
 
     idForLatestRandomNumber = proposalId;
-    getRandomNumber();
+    getRandomNumber(_fee);
   }
 
   function claimRewards(
@@ -94,7 +103,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
         expand(
           randomNumbers[proposalId],
           numberIndex,
-          uint256(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt).add(1)
+          getSqrtTornSumForProposal(proposalId).add(1)
         )
       )
     ) {
@@ -118,7 +127,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     return 0;
   }
 
-  function getSqrtTornSumForProposal(uint256 proposalId) external view returns (uint256) {
+  function getSqrtTornSumForProposal(uint256 proposalId) public view returns (uint256) {
     return uint256(lotteryUserData[proposalId][lotteryUserData[proposalId].length - 1].tornSqrt);
   }
 

@@ -2,7 +2,7 @@ require('dotenv').config()
 const { task } = require('hardhat/config')
 const { BigNumber } = require('@ethersproject/bignumber')
 
-task("deploy_proposal", "deploy the lottery/vault upgrade proposal")
+task('deploy_proposal', 'deploy the lottery/vault upgrade proposal')
   .addParam('votingPeriod', 'the desired new voting period')
   .setAction(async (taskArgs, hre) => {
     const GasVaultFactory = await hre.ethers.getContractFactory(
@@ -13,11 +13,14 @@ task("deploy_proposal", "deploy the lottery/vault upgrade proposal")
     await GasVaultContract.deployTransaction.wait(5)
 
     await hre.run('verify:verify', {
-      address: GasVaultContract.address
+      address: GasVaultContract.address,
     })
 
     const ProposalFactory = await hre.ethers.getContractFactory('LotteryAndVaultProposal')
-    const ProposalContract = await ProposalFactory.deploy(GasVaultContract.address, BigNumber.from(taskArgs.votingPeriod))
+    const ProposalContract = await ProposalFactory.deploy(
+      GasVaultContract.address,
+      BigNumber.from(taskArgs.votingPeriod),
+    )
 
     await ProposalContract.deployTransaction.wait(5)
 
@@ -26,5 +29,5 @@ task("deploy_proposal", "deploy the lottery/vault upgrade proposal")
       constructorArguments: [GasVaultContract.address, BigNumber.from(taskArgs.votingPeriod)],
     })
 
-    console.log("Successfully deployed proposal contract at: ", ProposalContract.address)
+    console.log('Successfully deployed proposal contract at: ', ProposalContract.address)
   })

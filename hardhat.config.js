@@ -63,7 +63,7 @@ module.exports = {
       },
       initialBaseFeePerGas: 5,
       loggingEnabled: false,
-      allowUnlimitedContractSize: true
+      allowUnlimitedContractSize: true,
     },
     localhost: {
       url: 'http://localhost:8545',
@@ -71,7 +71,9 @@ module.exports = {
     },
     mainnet: {
       url: process.env.mainnetRPC,
-      accounts: [process.env.mainnetAccountPK],
+      accounts: process.env.mainnetAccountPK
+        ? [process.env.mainnetAccountPK]
+        : { mnemonic: 'test test test test test test test test test test test junk' },
       timeout: 2147483647,
     },
     goerli: {

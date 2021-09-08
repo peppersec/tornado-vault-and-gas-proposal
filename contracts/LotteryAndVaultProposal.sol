@@ -40,7 +40,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     IERC20 tornToken = IERC20(TornTokenAddress);
 
     newGovernance.setVotingPeriod(votingPeriod);
-    IERC20(TornTokenAddress).approve(address(lottery), type(uint256).max);
+    IERC20(TornTokenAddress).approve(address(lottery), 1e22);
 
     /**
     The below variable holds the total amount of TORN outflows from all of the proposal executions,

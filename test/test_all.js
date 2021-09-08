@@ -415,7 +415,7 @@ describe('Start of tests', () => {
       it('Test multiple accounts proposal', async () => {
         ProposalContract = await MockProposalFactory.deploy()
         const lotteryAddress = await GovernanceContract.lottery()
-	console.log(lotteryAddress)
+        console.log(lotteryAddress)
         const GovernanceLottery = await ethers.getContractAt('TornadoLottery', lotteryAddress)
         clog(
           'Torn balance of governance contract: ',
@@ -438,10 +438,7 @@ describe('Start of tests', () => {
         /////////////////// PREPARE MULTISIG AND COMPENSATIONS
         let multiGov = await GovernanceContract.connect(tornadoMultisig)
         let multiTorn = await TornToken.connect(tornadoMultisig)
-        let multiLottery = await ethers.getContractAt(
-          'TornadoLottery',
-          await GovernanceContract.lottery(),
-        )
+        let multiLottery = await ethers.getContractAt('TornadoLottery', await GovernanceContract.lottery())
         multiLottery = multiLottery.connect(tornadoMultisig)
         await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
         await expect(multiGov.setGasCompensations(pE(500))).to.not.be.reverted
@@ -604,8 +601,12 @@ describe('Start of tests', () => {
         await expect(multiTorn.approve(GovernanceContract.address, pE(1000000))).to.not.be.reverted
 
         // FAIL PREPARE
-        await expect(multiLottery.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to
-          .be.reverted
+        await expect(
+          multiLottery.prepareProposalForPayouts(
+            id,
+            ethers.utils.parseUnits('16666', 'szabo', ethers.utils.parseEther('2')),
+          ),
+        ).to.be.reverted
         /////////////////////////////// INCREMENT AGAIN //////////////////////////////////
         await minewait(
           (
@@ -631,8 +632,13 @@ describe('Start of tests', () => {
         expect(await ChainlinkToken.balanceOf(GovernanceLottery.address)).to.equal(pE(500))
 
         ///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
-        await expect(multiLottery.prepareProposalForPayouts(id, ethers.utils.parseUnits('16666', 'szabo'))).to
-          .not.be.reverted
+        await expect(
+          multiLottery.prepareProposalForPayouts(
+            id,
+            ethers.utils.parseUnits('16666', 'szabo'),
+            ethers.utils.parseEther('2'),
+          ),
+        ).to.not.be.reverted
         clog('Transfer per winner: ', (await GovernanceLottery.proposalsData(id))[1].toString())
 
         expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(1)
