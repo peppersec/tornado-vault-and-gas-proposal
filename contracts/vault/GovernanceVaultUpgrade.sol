@@ -3,7 +3,7 @@
 pragma solidity ^0.6.12;
 pragma experimental ABIEncoderV2;
 
-import { Governance } from "../Governance.sol";
+import { Governance } from "tornado-governance/contracts/Governance.sol";
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { ITornadoVault } from "../interfaces/ITornadoVault.sol";
 

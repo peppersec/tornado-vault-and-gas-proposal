@@ -874,6 +874,11 @@
   resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.1.tgz#03c891fec7f93be0ae44ed74e57a122a38732ce7"
   integrity sha512-cUriqMauq1ylzP2TxePNdPqkwI7Le3Annh4K9rrpvKfSBB/bdW+Iu1ihBaTIABTAAJ85LmKL5SSPPL9ry8d1gQ==
 
+"@openzeppelin/contracts@^3.2.0-rc.0":
+  version "3.4.2"
+  resolved "https://registry.yarnpkg.com/@openzeppelin/contracts/-/contracts-3.4.2.tgz#d81f786fda2871d1eb8a8c5a73e455753ba53527"
+  integrity sha512-z0zMCjyhhp4y7XKAcDAi3Vgms4T2PstwBdahiO0+9NaGICQKjynK3wduSRplTgk4LXmoO1yfDGO5RbjKYxtuxA==
+
 "@openzeppelin/upgrades-core@^1.0.1":
   version "1.8.1"
   resolved "https://registry.yarnpkg.com/@openzeppelin/upgrades-core/-/upgrades-core-1.8.1.tgz#f7d3ce135e766657cff51a5303872854ad56a85b"
@@ -8287,7 +8292,7 @@ toidentifier@1.0.0:
   resolved "https://registry.yarnpkg.com/toidentifier/-/toidentifier-1.0.0.tgz#7e1be3470f1e77948bc43d94a3c8f4d7752ba553"
   integrity sha512-yaOH/Pk/VEhBWWTlhI+qXxDFXlejDGcQipMlyxda9nthulaxLZUNcUqFxokp0vcYnvteJln5FNQDRrxj3YcbVw==
 
-torn-token@^1.0.4:
+torn-token@^1.0.0, torn-token@^1.0.4:
   version "1.0.4"
   resolved "https://registry.yarnpkg.com/torn-token/-/torn-token-1.0.4.tgz#c638b6899f3e899a3bdb1d7a04194b500f100c71"
   integrity sha512-3377n2Wi9TO9JfTzPBKi4j+gdyJ35NCNkELT+3nXZn56j6z6o/Fh9tuAlEaP9E24jhx4gewRSrhsdim8v9/hjg==
@@ -8296,6 +8301,15 @@ torn-token@^1.0.4:
     eth-sig-util "^2.5.3"
     ethereumjs-util "^7.0.3"
     web3 "^1.2.11"
+
+tornado-governance@^1.0.1:
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/tornado-governance/-/tornado-governance-1.0.1.tgz#00359740b2b15ba130940862d7c81af50e86bc2d"
+  integrity sha512-6wbLXYD3Tc6n0JBq6h+hlSsb3QdkudQAqpIyGVk9cYHSwYMTkMN4Jqap+5I+qHSyL19MP19zs1qjQhk9aHvxQA==
+  dependencies:
+    "@openzeppelin/contracts" "^3.2.0-rc.0"
+    "@openzeppelin/upgrades-core" "^1.0.1"
+    torn-token "^1.0.0"
 
 tough-cookie@~2.5.0:
   version "2.5.0"

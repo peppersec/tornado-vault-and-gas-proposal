@@ -27,22 +27,23 @@
     "abdk-libraries-solidity": "https://github.com/abdk-consulting/abdk-libraries-solidity.git#2.x",
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
-    "torn-token": "^1.0.4"
+    "torn-token": "^1.0.4",
+    "tornado-governance": "^1.0.1"
   },
   "devDependencies": {
     "@ethersproject/testcases": "^5.4.0",
+    "babel-eslint": "^10.1.0",
     "dotenv": "^10.0.0",
+    "eslint": "^7.32.0",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-prettier": "^3.4.0",
     "hardhat": "2.6.0",
     "hardhat-contract-sizer": "^2.0.3",
     "hardhat-log-remover": "^2.0.2",
     "hardhat-spdx-license-identifier": "^2.0.3",
     "hardhat-storage-layout": "^0.1.6",
-    "babel-eslint": "^10.1.0",
-    "eslint": "^7.32.0",
-    "eslint-config-prettier": "^8.3.0",
-    "eslint-plugin-prettier": "^3.4.0",
     "prettier": "^2.3.2",
-    "solhint-plugin-prettier": "^0.0.5",
-    "prettier-plugin-solidity": "^1.0.0-beta.17"
+    "prettier-plugin-solidity": "^1.0.0-beta.17",
+    "solhint-plugin-prettier": "^0.0.5"
   }
 }

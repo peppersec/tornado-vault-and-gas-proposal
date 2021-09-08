@@ -5,7 +5,7 @@ pragma experimental ABIEncoderV2;
 
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import { LoopbackProxy } from "../tornado-governance/contracts/LoopbackProxy.sol";
+import { LoopbackProxy } from "tornado-governance/contracts/LoopbackProxy.sol";
 
 import { TornadoLottery } from "./lottery/TornadoLottery.sol";
 import { TornadoVault } from "./vault/TornadoVault.sol";

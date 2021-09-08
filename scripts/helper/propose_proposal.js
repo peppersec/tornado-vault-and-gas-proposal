@@ -7,7 +7,7 @@ async function propose(proposalArgs) {
   const ProposalContract = proposalArgs[1]
 
   let GovernanceContract = await ethers.getContractAt(
-    './contracts/Governance.sol:Governance',
+    'Governance',
     '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce',
   )
   GovernanceContract = await GovernanceContract.connect(proposer)
