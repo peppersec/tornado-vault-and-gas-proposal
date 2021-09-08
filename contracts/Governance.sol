@@ -270,7 +270,7 @@ contract Governance is Initializable, Configuration, Delegation, EnsResolve {
     address voter,
     uint256 proposalId,
     bool support
-  ) internal virtual override(Delegation) {
+  ) internal override(Delegation) {
     require(state(proposalId) == ProposalState.Active, "Governance::_castVote: voting is closed");
     Proposal storage proposal = proposals[proposalId];
     Receipt storage receipt = proposal.receipts[voter];

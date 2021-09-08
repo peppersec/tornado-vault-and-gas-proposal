@@ -27,7 +27,7 @@ abstract contract GasCompensator {
     if (eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(_returnBasefee());
+      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(_baseFee());
 
       gasCompensationVault.compensateGas(account, toCompensate);
     } else {
@@ -39,7 +39,7 @@ abstract contract GasCompensator {
 
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual;
 
-  function _returnBasefee() internal view returns (uint256) {
+  function _baseFee() internal view returns (uint256) {
     return gasCompensationVault.getBasefee();
   }
 }

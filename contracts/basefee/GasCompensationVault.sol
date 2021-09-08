@@ -15,11 +15,9 @@ contract GasCompensationVault {
   }
 
   function compensateGas(address recipient, uint256 amount) external onlyGovernance {
-    if(address(this).balance == 0) return;
-    require(
-      (amount > address(this).balance) ? payable(recipient).send(address(this).balance) : payable(recipient).send(amount),
-      "compensation failed"
-    );
+    uint256 vaultBalance = address(this).balance;
+    if(vaultBalance == 0) return;
+    payable(recipient).send((amount > vaultBalance) ? vaultBalance : amount);
   }
 
   function withdrawToGovernance(uint256 amount) external onlyGovernance {
