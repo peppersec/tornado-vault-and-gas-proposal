@@ -31,10 +31,10 @@ abstract contract LotteryRandomNumberConsumer is VRFConsumerBase {
   function fulfillRandomness(bytes32, uint256 randomness) internal virtual override;
 
   function expand(
-    uint256 randomNumber,
-    uint256 entropy,
+    uint256 seed,
+    uint256 index,
     uint256 upperBound
   ) public pure returns (uint256) {
-    return (uint256(keccak256(abi.encode(randomNumber, entropy))) % upperBound);
+    return (uint256(keccak256(abi.encode(seed, index))) % upperBound);
   }
 }

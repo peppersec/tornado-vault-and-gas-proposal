@@ -40,7 +40,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     IERC20 tornToken = IERC20(TornTokenAddress);
 
     newGovernance.setVotingPeriod(votingPeriod);
-    IERC20(TornTokenAddress).approve(address(lottery), 1e22);
+    IERC20(TornTokenAddress).approve(address(lottery), 10_000e18);
 
     /**
     The below variable holds the total amount of TORN outflows from all of the proposal executions,
@@ -48,7 +48,10 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     For an explanation as to how this variable has been calculated with these fix values, please look at:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md
     */
-    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18;
+    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 +
+      22916666666666666666666 +
+      54999999999999969408000 -
+      27e18;
 
     require(
       tornToken.transfer(

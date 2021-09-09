@@ -88,12 +88,12 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     getRandomNumber(_fee);
   }
 
-  function claimRewards(
+  function claimReward(
     uint256 proposalId,
     uint256 voteIndex,
     uint256 numberIndex
   ) external {
-    require(msg.sender == lotteryUserData[proposalId][voteIndex].voter, "invalid claimer/claimed once");
+    require(lotteryUserData[proposalId][voteIndex].voter != address(0), "invalid claimer/claimed once");
     require(_checkIfProposalIsReadyForPayouts(proposalId), "not ready for payouts");
     require(numberIndex < LOTTERY_WINNERS, "cant roll higher");
 
@@ -109,7 +109,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
       require(
         IERC20(TornTokenAddress).transferFrom(
           GovernanceAddress,
-          msg.sender,
+          lotteryUserData[proposalId][voteIndex].voter,
           uint256(proposalsData[proposalId].proposalRewardPerWinner)
         ),
         "Lottery reward transfer failed"

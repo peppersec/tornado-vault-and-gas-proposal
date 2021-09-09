@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: MIT
 
-pragma solidity ^0.6.12 || ^0.8.7;
+pragma solidity >=0.6.12 <0.7.0-0||>=0.8.7 <0.9.0-0;
 
 library EtherSend {
   function sendEther(

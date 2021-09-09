@@ -31,6 +31,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   fallback() external payable {}
+
   receive() external payable {}
 
   function setGasCompensations(uint256 gasCompensationsLimit) external virtual override onlyMultisig {
@@ -62,25 +63,14 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     external
     virtual
     override
-    gasCompensation(
-      msg.sender,
-      !hasAccountVoted(proposalId, msg.sender),
-      (msg.sender == tx.origin ? (lockedBalance[msg.sender] > 0 ? 21e3 : 20e3) : 0)
-    )
+    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), (msg.sender == tx.origin ? 21e3 : 0))
   {
     for (uint256 i = 0; i < from.length; i++) {
-      require(delegatedTo[from[i]] == msg.sender, "Governance: not authorized");
+      require(delegatedTo[from[i]] == msg.sender || from[i] == msg.sender, "Governance: not authorized");
       bool votedAlready = hasAccountVoted(proposalId, from[i]);
       _castVote(from[i], proposalId, support);
       if (!votedAlready) {
         _registerLotteryAccount(proposalId, from[i]);
-      }
-    }
-    if (lockedBalance[msg.sender] > 0) {
-      bool votedAlready = hasAccountVoted(proposalId, msg.sender);
-      _castVote(msg.sender, proposalId, support);
-      if (!votedAlready) {
-        _registerLotteryAccount(proposalId, msg.sender);
       }
     }
   }
