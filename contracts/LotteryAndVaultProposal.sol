@@ -33,7 +33,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     address vault = address(new TornadoVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(
-	    address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault, MultisigAddress))
+      address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault, MultisigAddress))
     );
 
     GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(payable(GovernanceAddress));
@@ -54,9 +54,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
       tornToken.transfer(
         address(newGovernance.userVault()),
         (tornToken.balanceOf(address(this))).sub(
-          IGovernanceVesting(GovernanceVesting).released().sub(
-            totalOutflowsOfProposalExecutions
-          )
+          IGovernanceVesting(GovernanceVesting).released().sub(totalOutflowsOfProposalExecutions)
         )
       ),
       "TORN: transfer failed"

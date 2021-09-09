@@ -4,11 +4,13 @@ pragma solidity ^0.6.12;
 
 import { IWETH } from "./interfaces/IWETH.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import { EtherSend } from "../libraries/EtherSend.sol";
 import { IEasyAuction } from "./interfaces/IEasyAuction.sol";
-import { IPayableGovernance } from "./interfaces/IPayableGovernance.sol";
 import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
 
 contract TornadoAuctionHandler is ImmutableGovernanceInformation {
+  using EtherSend for address;
+
   address public constant EasyAuctionAddress = 0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101;
   address public constant WETHAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
@@ -46,10 +48,10 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
     require(address(this).balance > 0, "something went wrong");
-    (bool success, ) = payable(GovernanceAddress).call{value:address(this).balance}(abi.encodeWithSignature("thisFunctionDoesNotExist()"));
-    require(success, "pay failed");
+    require(GovernanceAddress.sendEther(address(this).balance, "nonExistingFunction()"), "pay fail");
   }
 
   fallback() external payable {}
+
   receive() external payable {}
 }

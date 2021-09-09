@@ -6,7 +6,9 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IGasCompensationVault {
   function compensateGas(address recipient, uint256 amount) external;
+
   function withdrawToGovernance(uint256 amount) external;
+
   function getBasefee() external view returns (uint256);
 }
 

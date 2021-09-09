@@ -39,7 +39,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   mapping(uint256 => ProposalData) public proposalsData;
 
   LotteryState public lotteryState;
-  
+
   /**
   @dev Order of arguments in constructor for LotteryConsumerBase which takes data for Chainlink VRFConsumerBase:
     LotteryRandomNumberConsumer(
@@ -69,7 +69,11 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     _registerUserData(proposalId, account, accountVotes);
   }
 
-  function prepareProposalForPayouts(uint256 proposalId, uint256 proposalRewards, uint256 _fee) external onlyMultisig {
+  function prepareProposalForPayouts(
+    uint256 proposalId,
+    uint256 proposalRewards,
+    uint256 _fee
+  ) external onlyMultisig {
     require(_checkIfProposalIsFinished(proposalId), "proposal not finished");
     require(lotteryState == LotteryState.Idle, "preparing another proposal");
     require(proposalRewards <= 1e21, "reward limit");
@@ -99,11 +103,7 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
       checkIfAccountHasWon(
         proposalId,
         voteIndex,
-        expand(
-          randomNumbers[proposalId],
-          numberIndex,
-          getSqrtTornSumForProposal(proposalId).add(1)
-        )
+        expand(randomNumbers[proposalId], numberIndex, getSqrtTornSumForProposal(proposalId).add(1))
       )
     ) {
       require(

@@ -31,6 +31,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   fallback() external payable {}
+  receive() external payable {}
 
   function setGasCompensations(uint256 gasCompensationsLimit) external virtual override onlyMultisig {
     require(payable(address(gasCompensationVault)).send(Math.min(gasCompensationsLimit, address(this).balance)));
@@ -39,10 +40,6 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   function withdrawFromHelper(uint256 amount) external virtual override onlyMultisig {
     gasCompensationVault.withdrawToGovernance(amount);
   }
-
-  function receiveEther() external payable virtual returns (bool) {
-    return true;
-  } // receive doesn't work with proxy for some reason
 
   function castVote(uint256 proposalId, bool support)
     external
@@ -99,13 +96,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   function _registerLotteryAccount(uint256 proposalId, address account) private {
-    try
-      lottery.registerLotteryAccount(
-        proposalId,
-        account,
-        uint96(proposals[proposalId].receipts[account].votes)
-      )
-    {} catch {
+    try lottery.registerLotteryAccount(proposalId, account, uint96(proposals[proposalId].receipts[account].votes)) {} catch {
       emit RegisterAccountReverted(proposalId, account);
     }
   }

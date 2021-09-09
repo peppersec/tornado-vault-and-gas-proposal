@@ -2,11 +2,15 @@
 
 pragma solidity ^0.8.7;
 
+import { EtherSend } from "../libraries/EtherSend.sol";
+
 interface IPayableGovernance {
   function receiveEther() external payable returns (bool);
 }
 
 contract GasCompensationVault {
+  using EtherSend for address;
+
   address private constant GovernanceAddress = 0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce;
 
   modifier onlyGovernance() {
@@ -16,14 +20,15 @@ contract GasCompensationVault {
 
   function compensateGas(address recipient, uint256 amount) external onlyGovernance {
     uint256 vaultBalance = address(this).balance;
-    if(vaultBalance == 0) return;
+    if (vaultBalance == 0) return;
     payable(recipient).send((amount > vaultBalance) ? vaultBalance : amount);
   }
 
   function withdrawToGovernance(uint256 amount) external onlyGovernance {
-    IPayableGovernance(payable(GovernanceAddress)).receiveEther{
-      value: (amount > address(this).balance) ? address(this).balance : amount
-    }();
+    require(
+      GovernanceAddress.sendEther((amount > address(this).balance) ? address(this).balance : amount, "nonExistingFunction()"),
+      "pay fail"
+    );
   }
 
   receive() external payable {}

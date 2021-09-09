@@ -452,10 +452,7 @@ describe('Start of tests', () => {
         let gasUsedArray = []
 
         const gov1 = await GovernanceContract.connect(dore)
-        const overrides1 = {
-          value: pE(50),
-        }
-        await gov1.receiveEther(overrides1)
+
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
         for (i = 0; i < 50; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
