@@ -36,7 +36,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
 	    address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault, MultisigAddress))
     );
 
-    GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(GovernanceAddress);
+    GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(payable(GovernanceAddress));
     IERC20 tornToken = IERC20(TornTokenAddress);
 
     newGovernance.setVotingPeriod(votingPeriod);
@@ -69,6 +69,6 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     As with above, please see:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/contracts/auction/Auction.md
     */
-    auctionHandler.initializeAuction(1631743200, 100 ether, 151e16, 1 ether, 0);
+    auctionHandler.initializeAuction(block.timestamp + 5 days, 100 ether, 151e16, 1 ether, 0);
   }
 }

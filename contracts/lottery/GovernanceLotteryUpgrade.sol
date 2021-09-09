@@ -30,6 +30,8 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     _;
   }
 
+  fallback() external payable {}
+
   function setGasCompensations(uint256 gasCompensationsLimit) external virtual override onlyMultisig {
     require(payable(address(gasCompensationVault)).send(Math.min(gasCompensationsLimit, address(this).balance)));
   }

@@ -6,7 +6,6 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { ABDKMath64x64 } from "../libraries/ABDKMath64x64.sol";
 import { LotteryRandomNumberConsumer } from "./LotteryRandomNumberConsumer.sol";
-import { GovernanceLotteryUpgrade } from "./GovernanceLotteryUpgrade.sol";
 import { Governance } from "tornado-governance/contracts/Governance.sol";
 import { ImmutableGovernanceInformation } from "../ImmutableGovernanceInformation.sol";
 
@@ -167,16 +166,16 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
   }
 
   function _checkIfProposalIsActive(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Active);
+    return (Governance(GovernanceAddress).state(proposalId) == Governance.ProposalState.Active);
   }
 
   function _checkIfProposalIsPending(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Pending);
+    return (Governance(GovernanceAddress).state(proposalId) == Governance.ProposalState.Pending);
   }
 
   function _checkIfProposalIsFinished(uint256 proposalId) private view returns (bool) {
-    return (GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Defeated ||
-      GovernanceLotteryUpgrade(GovernanceAddress).state(proposalId) == Governance.ProposalState.Executed);
+    return (Governance(GovernanceAddress).state(proposalId) == Governance.ProposalState.Defeated ||
+      Governance(GovernanceAddress).state(proposalId) == Governance.ProposalState.Executed);
   }
 
   function _checkIfProposalIsReadyForPayouts(uint256 proposalId) private view returns (bool) {

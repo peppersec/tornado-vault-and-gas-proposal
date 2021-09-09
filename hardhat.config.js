@@ -63,7 +63,7 @@ module.exports = {
       },
       initialBaseFeePerGas: 5,
       loggingEnabled: false,
-      allowUnlimitedContractSize: true,
+      allowUnlimitedContractSize: false,
     },
     localhost: {
       url: 'http://localhost:8545',
