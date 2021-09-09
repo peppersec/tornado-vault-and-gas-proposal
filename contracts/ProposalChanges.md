@@ -16,7 +16,7 @@ This is a non issue, as logic and memory slots are left unaffected and properly 
 - split DAO member locked TORN from vesting locked TORN.
 - block Governance from being able to interact with user TORN.
 
-To solve point 1 of the formerly stated problems, and to reduce the logic bloat of the lock and unlock functionalities, we have opted for calculating the amount of user TORN locked in the governance contract. The calculations and explanations may be found [here](https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/contracts/auction/Auction.md).
+To solve point 1 of the formerly stated problems, and to reduce the logic bloat of the lock and unlock functionalities, we have opted for calculating the amount of user TORN locked in the governance contract. The calculations and explanations may be found [here](https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md).
 
 ### Additions and changes
 
