@@ -701,7 +701,7 @@ describe('Start of tests', () => {
             }
           }
           if (winIndex >= 0) {
-            const claimResponse = await govl.claimRewards(id, voterIndex, winIndex)
+            const claimResponse = await govl.claimReward(id, voterIndex, winIndex)
             claimGasSum = claimGasSum.add((await claimResponse.wait()).cumulativeGasUsed)
             console.log(
               `Account ${i} has won: `,

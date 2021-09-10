@@ -97,8 +97,6 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
     require(_checkIfProposalIsReadyForPayouts(proposalId), "not ready for payouts");
     require(numberIndex < LOTTERY_WINNERS, "cant roll higher");
 
-    lotteryUserData[proposalId][voteIndex].voter = address(0);
-
     if (
       checkIfAccountHasWon(
         proposalId,
@@ -115,6 +113,8 @@ contract TornadoLottery is LotteryRandomNumberConsumer, ImmutableGovernanceInfor
         "Lottery reward transfer failed"
       );
     }
+
+    lotteryUserData[proposalId][voteIndex].voter = address(0);
   }
 
   function findUserIndex(uint256 proposalId, address account) external view returns (uint256) {
