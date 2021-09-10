@@ -6,8 +6,9 @@ This serves as documentation for all functions which are being added or modified
 
 ## Governance Governance.sol
 
-The `Governance` contract available in this repository modifies the original Governance source code to enable overriding functions via inheritance.
-This is a non issue, as logic and memory slots are left unaffected and properly referenced to.
+The `Governance` contract available in the ``tornado-governance`` repository modifies the original Governance source code to enable overriding functions via inheritance. This has been submitted via PR.
+
+This is a non issue, as logic and memory slots are left unaffected and properly referenced to. ``tornado-governance`` is being imported as a package.
 
 ## Governance Vault Upgrade (GovernanceVaultUpgrade.sol)
 
@@ -35,7 +36,6 @@ The compliment to the above upgrade. Stores user TORN, does not keep records of 
 | ------------------------------- | --------------------------------------------------- |
 | `withdrawTorn(address,uint256)` | used for withdrawing TORN balance to users' account |
 
-`TornadoVault` is extended through `ImmutableGovernanceInformation`, which is a basic contract storing (current) Multisig, Governance and Torn token addresses. It also has helper function to return a payable version of the governance address.
 
 ## Governance Lottery Upgrade (GovernanceLotteryUpgrade.sol)
 
@@ -49,13 +49,27 @@ The compliment to the above upgrade. Stores user TORN, does not keep records of 
 
 | Function/variable signature                    | is addition or change? | access       | describe significance                                                                                                                                                                                 |
 | ---------------------------------------------- | ---------------------- | ------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `address immutable lotteryAddress`             | addition               | public       | address of the governance lottery contract                                                                                                                                                            |
+| `address immutable lottery`             | addition               | public       | address of the governance lottery contract |
+| `address public multisigAddress` | addition | public | address of the TORN multisig |
 | `setGasCompensations(uint256)`                 | addition               | onlyMultisig | transfer a certain amount of ethereum to the gas compensation helper contract                                                                                                                         |
 | `withdrawFromHelper(uint256)`                  | addition               | onlyMultisig | remove a certain amount of ethereum from the gas compensation helper contract                                                                                                                         |
-| `receiveEther() payable`                       | addition               | public       | deposit ethereum into the governance contract                                                                                                                                                         |
+| `receive() payable`                       | addition               | public       | governance contract payable fallback function |
 | `castVote(uint256,bool)`                       | change                 | public       | function now first casts the vote, then registers the user (if he has not voted already) with the governance lottery and compensates gas for the function call given the formerly mentioned condition |
-| `castDelegatedVote(...)`                       | change                 | public       | same as above just with more checks for sybil resistance                                                                                                                                              |
-| `version()`                                    | change                 | public       | change version statement to include lottery                                                                                                                                                           |
-| `hasAccountedVoted(uint256,address)`           | addition               | public       | if account has voted on the proposal, return true                                                                                                                                                     |
-| `returnMultisigAddress()`                      | addition               | internal     | _upgradeable_ function to return multisig address, in case multisig address changes in future                                                                                                         |
-| `_registerAccountWithLottery(uint256,address)` | addition               | private      | private function which communicates with vault to register user data for a proposal he has voted on                                                                                                   |
+| `castDelegatedVote(...)`                       | change                 | public       | function logic now made more logical by including the person being delegated to in the address array being passed in, also registers users with lottery |
+| `version()`                                    | change                 | public       | change version statement to include lottery |
+| `hasAccountedVoted(uint256,address)`           | addition               | public       | if account has voted on the proposal, return true |
+| `_registerAccountWithLottery(uint256,address)` | addition               | private      | private function which communicates with vault to register user data for a proposal he has voted on |
+
+## Tornado Lottery (TornadoLottery.sol)
+
+`TornadoLottery` is the helper contract of `GovernanceLotteryUpgrade`, it handles the lottery logic. Some functions of the lottery are of interest to lottery participants, due to the fact that it can give them information on wether they have won the lottery or not, and which index they are in the array of voters. These important functions / variables will be listed below.
+
+| Function/variable signature | access | describe significance |
+| --------------------------- | ------ | --------------------- |
+| `lotteryUserData` | public | mapping which stores voter address + an interval tick for rewards calculations of a proposal |
+| `proposalsData` | public | mapping which stores state and rewards amount of a proposal |
+| `prepareProposalForPayouts(uint256,uint256,uint256)` | multisig | called by multisig to prepare proposal for payouts by assigning how much TORN should be used for the proposal rewards |
+| `lotteryState` | public | enum which represents state of entire lottery |
+| `findUserIndex(uint256,address)` | external | find index of address in lotteryUserData for a proposal |
+| `checkIfAccountHasWon(uint256,uint256,uint256)` | public | check if account has won lottery for a certain proposal |
+

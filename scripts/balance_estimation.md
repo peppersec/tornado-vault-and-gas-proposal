@@ -33,7 +33,7 @@ We test this result once again with the **find_torn_locked.js**:
 
 And receive the same number, this is for the reader to try.
 
-**PLEASE NOTE THE BLOCK NUMBERS, WHEN RUNNING WITH NETWORK MAINNET HARDHAT DID NOT INCLUDE LATEST BLOCK, MANUALLY SUBTRACT OR ADD VALUES BASED ON TXS POST MAX BLOCK**
+**Please note the block numbers, when running with network mainnet hardhat did not include latest block, manually subtract or add values based on txs post max block**
 
 ### Accidental transfer
 
