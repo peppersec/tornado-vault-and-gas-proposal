@@ -167,7 +167,6 @@ describe('Start of tests', () => {
     describe('Imitation block', async () => {
       it('Basefee logic should successfully return basefee', async () => {
         const latestBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
-
         expect(await GasCompensationContract.getBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
       })
 
@@ -279,8 +278,19 @@ describe('Start of tests', () => {
     describe('Mock rewards + proposal distribution with multiple accounts', async () => {
       let addrArray = []
       let signerArmy = []
+      let delegatedSignerArmy = []
+      let votingAddressArray = [];
+      const numberOfVoters = 80;
+      const numberOfDelegators = 30;
 
-      it('Should impersonate and fund 50 accounts', async () => {
+      it("Should create empty address array", async () => {
+	for(i = 0; i < 10; i++) {
+	  votingAddressArray[i] = new Array(numberOfDelegators/10 + 1);
+	}
+      });
+
+      it('Should impersonate and fund 80 accounts', async () => {
+	////////// WRITE WHALE ADDRESSES AND PREPARE FOR TRANSFERS
         addrArray = [
           '0x6cC5F688a315f3dC28A7781717a9A798a59fDA7b',
           '0xF977814e90dA44bFA03b6295A0616a897441aceC',
@@ -306,12 +316,15 @@ describe('Start of tests', () => {
         }
 
         const whale0Balance = await TornToken.balanceOf(whales[0].address)
-        const toTransfer = whale0Balance.sub(pE(10000)).div(50)
+        const toTransfer = whale0Balance.sub(pE(10000)).div(numberOfVoters)
         let torn0 = await TornToken.connect(whales[0])
         const oldBalance = await TornToken.balanceOf(await GovernanceContract.userVault())
         let lockedSum = BigNumber.from(0)
 
-        for (i = 0; i < 50; i++) {
+	////////// TRANSFER TO 50 ACCOUNTS + DELEGATION TO 10
+
+        for (i = 0; i < numberOfVoters; i++) {
+	  /// PREPARE ACCOUNTS
           const accAddress = accountList[i + 7].checksumAddress
           await sendr('hardhat_impersonateAccount', [accAddress])
 
@@ -320,6 +333,7 @@ describe('Start of tests', () => {
 
           await signerArray[0].sendTransaction(tx)
 
+	  /// FILL WITH GAS FOR LATER
           await expect(() => torn0.transfer(signerArmy[i].address, toTransfer)).to.changeTokenBalance(
             torn0,
             signerArmy[i],
@@ -327,10 +341,12 @@ describe('Start of tests', () => {
           )
           let torn = await torn0.connect(signerArmy[i])
 
+	  /// APPROVE TO GOVERNANCE FOR LOCK
           await expect(torn.approve(GovernanceContract.address, toTransfer)).to.not.be.reverted
           const gov = await GovernanceContract.connect(signerArmy[i])
 
-          if (i > 20) {
+	  ///// LOCK
+          if (i > numberOfVoters/2) {
             await expect(() => gov.lockWithApproval(toTransfer.div(i))).to.changeTokenBalance(
               torn,
               signerArmy[i],
@@ -346,9 +362,24 @@ describe('Start of tests', () => {
             lockedSum = lockedSum.add(toTransfer)
           }
 
+	  if(i > numberOfVoters - numberOfDelegators - 1) {
+	    delegatedSignerArmy[i- (numberOfVoters - numberOfDelegators)] = signerArmy[i];
+	  }
+
+	  if(i < 10) {
+	    votingAddressArray[i][0] = signerArmy[i].address;
+	  }
+
           const restBalance = await torn.balanceOf(signerArmy[i].address)
           await torn.transfer(whale.address, restBalance)
         }
+
+	for(i = 0; i < numberOfDelegators; i++) {
+	  const gov = await GovernanceContract.connect(delegatedSignerArmy[i]);
+	  /// DELEGATE TO 10 FIRST SIGNERS
+          await expect(gov.delegate(signerArmy[i%10].address)).to.emit(gov, "Delegated");
+	  votingAddressArray[i%10][Math.floor(i/10) + 1] = delegatedSignerArmy[i].address;
+	}
 
         const TornVault = await GovernanceContract.userVault()
         expect(await TornToken.balanceOf(TornVault)).to.equal(lockedSum.add(oldBalance))
@@ -448,13 +479,33 @@ describe('Start of tests', () => {
         }
 
         let signerArmyBalanceInitial = []
-        let signerArmyBalanceVoted = []
+        let signerArmyBalanceDiff = []
         let gasUsedArray = []
 
         const gov1 = await GovernanceContract.connect(dore)
 
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
-        for (i = 0; i < 50; i++) {
+
+	for (i = 0; i < 10; i++) {
+          let gov = await GovernanceContract.connect(signerArmy[i])
+          let randN = rand(i * 5, i * 6)
+          randN = randN % 2
+          let response
+
+          signerArmyBalanceInitial[i] = await signerArmy[i].getBalance()
+
+          if (randN > 0) {
+            response = await gov.castDelegatedVote(votingAddressArray[i], id, true, overrides)
+          } else {
+            response = await gov.castDelegatedVote(votingAddressArray[i], id, false, overrides)
+          }
+          signerArmyBalanceDiff[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+
+          const receipt = await response.wait()
+          gasUsedArray[i] = receipt.cumulativeGasUsed
+	}
+
+        for (i = 10; i < numberOfVoters - numberOfDelegators; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
           let randN = rand(i * 5, i * 6)
           randN = randN % 2
@@ -468,18 +519,20 @@ describe('Start of tests', () => {
             response = await gov.castVote(id, false, overrides)
           }
 
-          signerArmyBalanceVoted[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+          signerArmyBalanceDiff[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
 
           const receipt = await response.wait()
-          gasUsedArray[i] = receipt.cumulativeGasUsed.mul(receipt.effectiveGasPrice).toString()
+          gasUsedArray[i] = receipt.cumulativeGasUsed
         }
+
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
+
         ///////////////////////////// VOTER INFO ///////////////////////////////////
         // (uncomment for more data)
         /*
-				for (i = 0; i < 50; i+=5) {
+				for (i = 0; i < numberOfVoters; i+=5) {
 					const j = BigNumber.from(i);
 					console.log(
 						`Voter ${i} sqrt: `,
@@ -496,7 +549,7 @@ describe('Start of tests', () => {
 					)
 				}
 
-				for (i = 0; i < 50; i+=5) {
+				for (i = 0; i < numberOfVoters; i+=5) {
 					console.log(
 						`Voter ${i} ether used: `,
 						gasUsedArray[i],
@@ -516,9 +569,26 @@ describe('Start of tests', () => {
         await sendr('evm_revert', [snapshotIdArray[3]])
 
         ///////////////////////////////// VOTE WITHOUT COMPENSATION //////////////////////////////////////
-        let etherUsedWithoutCompensation = []
+        let gasUsedWithoutCompensation = []
         await multiGov.setGasCompensations(pE(100000))
-        for (i = 0; i < 50; i++) {
+
+	for (i = 0; i < 10; i++) {
+          let gov = await GovernanceContract.connect(signerArmy[i])
+          let randN = rand(i * 5, i * 6)
+          randN = randN % 2
+          let response
+
+          if (randN > 0) {
+            response = await gov.castDelegatedVote(votingAddressArray[i], id, true, overrides)
+          } else {
+            response = await gov.castDelegatedVote(votingAddressArray[i], id, false, overrides)
+          }
+
+          const receipt = await response.wait()
+          gasUsedWithoutCompensation[i] = receipt.cumulativeGasUsed;
+	}
+
+        for (i = 10; i < numberOfVoters - numberOfDelegators; i++) {
           let gov = await GovernanceContract.connect(signerArmy[i])
           let randN = rand(i * 5, i * 6)
           randN = randN % 2
@@ -531,57 +601,77 @@ describe('Start of tests', () => {
           }
 
           const receipt = await response.wait()
-          etherUsedWithoutCompensation[i] = receipt.cumulativeGasUsed
-            .mul(receipt.effectiveGasPrice)
-            .toString()
+          gasUsedWithoutCompensation[i] = receipt.cumulativeGasUsed;
         }
+
         await multiGov.setGasCompensations(pE(100))
         //////////////////////////////// GET STATE ///////////////////////////////
         state = await GovernanceContract.state(id)
         expect(state).to.be.equal(ProposalState.Active)
 
-        ///////////////////////////// VOTER INFO ///////////////////////////////////
-        let etherUsedNoComp = BigNumber.from(0)
-        let etherUsed = BigNumber.from(0)
-        let etherEndDiff = BigNumber.from(0)
+        ///////////////////////////// VOTING GAS INFO ///////////////////////////////////
+        let gasUsedSumNoComp = BigNumber.from(0)
+        let gasUsedSum = BigNumber.from(0)
+        let gasSumDiff = BigNumber.from(0)
+        let gasUsedSumNoCompDel = BigNumber.from(0)
+        let gasUsedSumDel = BigNumber.from(0)
+        let gasSumDiffDel = BigNumber.from(0)
 
-        for (i = 0; i < 50; i++) {
-          etherUsed = etherUsed.add(BigNumber.from(gasUsedArray[i]))
-          etherUsedNoComp = etherUsedNoComp.add(BigNumber.from(etherUsedWithoutCompensation[i]))
-          etherEndDiff = etherEndDiff.add(signerArmyBalanceVoted[i])
+	for (i = 0; i < 10; i++) {
+	  gasUsedSumDel = gasUsedSumDel.add(gasUsedArray[i]);
+	  gasUsedSumNoCompDel = gasUsedSumNoCompDel.add(gasUsedWithoutCompensation[i]);
+	  gasSumDiffDel = gasSumDiffDel.add(signerArmyBalanceDiff[i])
+	}
+
+        for (i = 10; i < numberOfVoters - numberOfDelegators; i++) {
+	  gasUsedSum = gasUsedSum.add(gasUsedArray[i]);
+	  gasUsedSumNoComp = gasUsedSumNoComp.add(gasUsedWithoutCompensation[i]);
+	  gasSumDiff = gasSumDiff.add(signerArmyBalanceDiff[i]);
         }
 
-        etherUsedNoComp = etherUsedNoComp.div(50)
-        etherUsed = etherUsed.div(50)
-        etherEndDiff = etherEndDiff.div(50)
+	const gasUsedAverageNoCompDel = gasUsedSumNoCompDel.div(10);
+	const gasUsedAverageDel = gasUsedSumDel.div(10);
+	const gasSumAverageDiffDel = gasSumDiffDel.div(10);
+
+	const gasUsedAverageNoComp = gasUsedSumNoComp.div(numberOfVoters - 10);
+	const gasUsedAverage = gasUsedSum.div(numberOfVoters - 10);
+	const gasSumAverageDiff = gasSumDiff.div(numberOfVoters - 10);
 
         console.log(
           '\n',
           '----------------------------CAST VOTE INFO------------------------',
           '\n',
-          'Ether use without compensation average: ',
-          etherUsedNoComp.toString(),
-          '\n',
-          'Ether use average: ',
-          etherUsed.toString(),
-          '\n',
-          'Ether diff average: ',
-          etherUsed.sub(etherUsedNoComp).toString(),
-          '\n',
-          'Ether compensated in average: ',
-          etherUsed.sub(etherEndDiff).toString(),
-          '\n',
           'Gas use average: ',
-          etherUsed.div(5).toString(),
+          gasUsedAverage.toString(),
           '\n',
           'Gas use without compensation average: ',
-          etherUsedNoComp.div(5).toString(),
+          gasUsedAverageNoComp.toString(),
           '\n',
           'Gas diff average: ',
-          etherUsed.sub(etherUsedNoComp).div(5).toString(),
+          gasSumAverageDiff.toString(),
           '\n',
           'Gas compensated in average: ',
-          etherUsed.sub(etherEndDiff).div(5).toString(),
+          gasUsedAverage.sub(gasSumAverageDiff).toString(),
+          '\n',
+          '--------------------------------------------------------------------',
+          '\n',
+        )
+
+	console.log(
+          '\n',
+          '----------------------------CAST DELEGATED VOTE INFO------------------------',
+          '\n',
+          'Gas use average: ',
+          gasUsedAverageDel.toString(),
+          '\n',
+          'Gas use without compensation average: ',
+          gasUsedAverageNoCompDel.toString(),
+          '\n',
+          'Gas diff average: ',
+          gasSumAverageDiffDel.toString(),
+          '\n',
+          'Gas compensated in average: ',
+          gasUsedAverageDel.sub(gasSumAverageDiffDel).toString(),
           '\n',
           '--------------------------------------------------------------------',
           '\n',
@@ -654,7 +744,7 @@ describe('Start of tests', () => {
             BigNumber.from(0),
           ),
         )
-        const rfrresponse = await vrfGov.rawFulfillRandomness(rId, someHex[1])
+        const rfrresponse = await vrfGov.rawFulfillRandomness(rId, someHex[0])
         const rfrreceipt = await rfrresponse.wait()
 
         GovernanceContract = await GovernanceContract.connect(whale)
