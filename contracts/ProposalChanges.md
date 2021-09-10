@@ -4,7 +4,7 @@
 
 This serves as documentation for all functions which are being added or modified and which have relevant functionality:
 
-## Governance Governance.sol
+## Governance (Governance.sol)
 
 The `Governance` contract available in the ``tornado-governance`` repository modifies the original Governance source code to enable overriding functions via inheritance. This has been submitted via PR.
 
