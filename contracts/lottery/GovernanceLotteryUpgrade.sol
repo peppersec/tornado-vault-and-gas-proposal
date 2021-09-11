@@ -63,6 +63,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     override
     gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), (msg.sender == tx.origin ? 21e3 : 0))
   {
+    require(from.length > 0, "Can not be empty");
     for (uint256 i = 0; i < from.length; i++) {
       require(delegatedTo[from[i]] == msg.sender || from[i] == msg.sender, "Governance: not authorized");
       bool votedAlready = hasAccountVoted(proposalId, from[i]);
