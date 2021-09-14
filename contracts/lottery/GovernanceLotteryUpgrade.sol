@@ -23,7 +23,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   modifier onlyMultisig() {
-    require(msg.sender == _returnMultisigAddress(), "only multisig");
+    require(msg.sender == returnMultisigAddress(), "only multisig");
     _;
   }
 
@@ -81,7 +81,7 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
     return proposals[proposalId].receipts[account].hasVoted;
   }
 
-  function _returnMultisigAddress() internal pure virtual returns (address) {
+  function returnMultisigAddress() public pure virtual returns (address) {
     return 0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4;
   }
 
