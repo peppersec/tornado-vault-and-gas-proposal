@@ -19,7 +19,6 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;
 
   address public constant GovernanceVesting = 0x179f48C78f57A3A78f0608cC9197B8972921d1D2;
-  address public constant MultisigAddress = 0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4;
   address public immutable gasCompLogic;
   uint256 public immutable votingPeriod;
 
@@ -33,7 +32,7 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     address vault = address(new TornadoVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(
-      address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault, MultisigAddress))
+      address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault))
     );
 
     GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(payable(GovernanceAddress));

@@ -11,22 +11,19 @@ import { Math } from "@openzeppelin/contracts/math/Math.sol";
 
 contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
   ITornadoLottery public immutable lottery;
-  address public immutable multisigAddress;
 
   event RegisterAccountReverted(uint256 proposalId, address account);
 
   constructor(
     address _gasCompLogic,
     address _lotteryLogic,
-    address _userVault,
-    address _multisigAddress
+    address _userVault
   ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_gasCompLogic) {
     lottery = ITornadoLottery(_lotteryLogic);
-    multisigAddress = _multisigAddress;
   }
 
   modifier onlyMultisig() {
-    require(msg.sender == multisigAddress, "only multisig");
+    require(msg.sender == _returnMultisigAddress(), "only multisig");
     _;
   }
 
@@ -82,6 +79,10 @@ contract GovernanceLotteryUpgrade is GovernanceVaultUpgrade, GasCompensator {
 
   function hasAccountVoted(uint256 proposalId, address account) public view returns (bool) {
     return proposals[proposalId].receipts[account].hasVoted;
+  }
+
+  function _returnMultisigAddress() internal pure virtual returns (address) {
+    return 0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4;
   }
 
   function _registerLotteryAccount(uint256 proposalId, address account) private {
