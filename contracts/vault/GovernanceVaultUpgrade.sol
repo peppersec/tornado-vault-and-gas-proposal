@@ -21,7 +21,7 @@ contract GovernanceVaultUpgrade is Governance {
 
   /// @notice Withdraws TORN from governance if conditions permit
   /// @param amount the amount of TORN to withdraw
-  function unlock(uint256 amount) external override {
+  function unlock(uint256 amount) external virtual override {
     require(getBlockTimestamp() > canWithdrawAfter[msg.sender], "Governance: tokens are locked");
     lockedBalance[msg.sender] = lockedBalance[msg.sender].sub(amount, "Governance: insufficient balance");
     userVault.withdrawTorn(msg.sender, amount);
@@ -36,7 +36,7 @@ contract GovernanceVaultUpgrade is Governance {
   /// @notice transfers tokens from the contract to the vault, withdrawals are unlock()
   /// @param owner account/contract which (this) spender will send to the user vault
   /// @param amount amount which spender will send to the user vault
-  function _transferTokens(address owner, uint256 amount) internal override {
+  function _transferTokens(address owner, uint256 amount) internal virtual override {
     require(torn.transferFrom(owner, address(userVault), amount), "TORN: transferFrom failed");
     lockedBalance[owner] = lockedBalance[owner].add(amount);
   }
