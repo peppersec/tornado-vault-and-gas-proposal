@@ -7,18 +7,17 @@ import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 import { IERC20 } from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import { LoopbackProxy } from "tornado-governance/contracts/LoopbackProxy.sol";
 
-import { TornadoLottery } from "./lottery/TornadoLottery.sol";
 import { TornadoVault } from "./vault/TornadoVault.sol";
+import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
+import { GovernanceGasUpgrade } from "./gas/GovernanceGasUpgrade.sol";
 
 import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
-import { GovernanceLotteryUpgrade } from "./lottery/GovernanceLotteryUpgrade.sol";
-import { TornadoAuctionHandler } from "./auction/TornadoAuctionHandler.sol";
 
-contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
+contract VaultAndGasProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;
 
-  address public constant GovernanceVesting = 0x179f48C78f57A3A78f0608cC9197B8972921d1D2;
+  IGovernanceVesting public constant GovernanceVesting = IGovernanceVesting(0x179f48C78f57A3A78f0608cC9197B8972921d1D2);
   address public immutable gasCompLogic;
   uint256 public immutable votingPeriod;
 
@@ -28,18 +27,16 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
   }
 
   function executeProposal() external {
-    address lottery = address(new TornadoLottery());
     address vault = address(new TornadoVault());
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(
-      address(new GovernanceLotteryUpgrade(gasCompLogic, lottery, vault))
+      address(new GovernanceGasUpgrade(gasCompLogic, vault))
     );
 
-    GovernanceLotteryUpgrade newGovernance = GovernanceLotteryUpgrade(payable(GovernanceAddress));
+    GovernanceGasUpgrade newGovernance = GovernanceGasUpgrade(payable(GovernanceAddress));
     IERC20 tornToken = IERC20(TornTokenAddress);
 
     newGovernance.setVotingPeriod(votingPeriod);
-    IERC20(TornTokenAddress).approve(address(lottery), 10_000e18);
 
     /**
     The below variable holds the total amount of TORN outflows from all of the proposal executions,
@@ -47,16 +44,13 @@ contract LotteryAndVaultProposal is ImmutableGovernanceInformation {
     For an explanation as to how this variable has been calculated with these fix values, please look at:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md
     */
-    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 +
-      22916666666666666666666 +
-      54999999999999969408000 -
-      27e18;
+    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18;
 
     require(
       tornToken.transfer(
         address(newGovernance.userVault()),
         (tornToken.balanceOf(address(this))).sub(
-          IGovernanceVesting(GovernanceVesting).released().sub(totalOutflowsOfProposalExecutions)
+          GovernanceVesting.released().sub(totalOutflowsOfProposalExecutions)
         )
       ),
       "TORN: transfer failed"

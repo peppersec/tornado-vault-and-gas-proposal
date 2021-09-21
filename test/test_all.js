@@ -10,10 +10,6 @@ const EasyAuctionJson = require('@gnosis.pm/ido-contracts/build/artifacts/contra
 describe('Start of tests', () => {
   ///// CONSTANTS
   let proxy_address = '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce'
-  let someHex = []
-  someHex[0] = BigNumber.from('0xfe16f5da5d734ce11cbb97f30ed3e5c3caccee9abd8d8e189adefcb4f9371d23')
-  someHex[1] = BigNumber.from('0x639F0F6557EB7A959E2382B9583601442514DF8A951F24CBCE889B1F73B76146')
-  someHex[2] = BigNumber.from('0x6F8ECDC9A8F8A8FCCA2054FE558D82164B0C0433A7F75E22B33165D919D2C4DC')
 
   ///////////////////////////// CONTRACTS
   let GovernanceContract
@@ -22,20 +18,11 @@ describe('Start of tests', () => {
   let TornadoAuctionHandler
   let GnosisEasyAuction
 
-  ///////////////// PROPOSAL & DEPENDENCIES
-  let BasefeeLogicFactory
-  let BasefeeLogicContract
-  let LPEHelperFactory
-  let LPEHelper
-  let LPUHelperFactory
-  let LPUHelper
   let ProposalFactory
   let ProposalContract
 
-  ///////////////////// CHAINLINK
-  let ChainlinkToken
-  let VRFRequestHelperFactory
-  let VRFRequestHelper
+  let GasCompensationFactory
+  let GasCompensationContract
 
   //////////////////// IMPERSONATED
   let vrfCoordinator
@@ -122,12 +109,9 @@ describe('Start of tests', () => {
 
     MockProposalFactory = await ethers.getContractFactory('MockProposal1')
 
-    ProposalFactory = await ethers.getContractFactory('LotteryAndVaultProposal')
+    ProposalFactory = await ethers.getContractFactory('VaultAndGasProposal')
 
     ProposalContract = await ProposalFactory.deploy(GasCompensationContract.address, 260000)
-
-    VRFRequestHelperFactory = await ethers.getContractFactory('VRFRequestHelper')
-    VRFRequestHelper = await VRFRequestHelperFactory.deploy()
 
     GovernanceContract = await ethers.getContractAt('Governance', proxy_address)
     GnosisEasyAuction = await ethers.getContractAt(
@@ -140,10 +124,6 @@ describe('Start of tests', () => {
       '0x77777FeDdddFfC19Ff86DB637967013e6C6A116C',
     )
     WETH = await ethers.getContractAt('IWETH', '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
-    ChainlinkToken = await ethers.getContractAt(
-      '@chainlink/contracts/src/v0.6/interfaces/LinkTokenInterface.sol:LinkTokenInterface',
-      '0x514910771AF9Ca656af840dff83E8264EcF986CA',
-    )
 
     votingDelay = await GovernanceContract.VOTING_DELAY()
     votingPeriod = await GovernanceContract.VOTING_PERIOD()
@@ -170,19 +150,9 @@ describe('Start of tests', () => {
         expect(await GasCompensationContract.getBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
       })
 
-      it('Should successfully imitate chainlink VRF coordinator on mainnet', async () => {
-        await sendr('hardhat_impersonateAccount', ['0xf0d54349aDdcf704F77AE15b96510dEA15cb7952'])
-        vrfCoordinator = await ethers.getSigner('0xf0d54349aDdcf704F77AE15b96510dEA15cb7952')
-      })
-
       it('Should successfully imitate tornado multisig', async () => {
         await sendr('hardhat_impersonateAccount', ['0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4'])
         tornadoMultisig = await ethers.getSigner('0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4')
-      })
-
-      it('Should successfully imitate a link marine', async () => {
-        await sendr('hardhat_impersonateAccount', ['0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02'])
-        linkMarine = await ethers.getSigner('0x7Dff4e2AC3aafc613398cA2D42CcBCdFBC413A02')
       })
 
       it('Should successfully imitate whale', async () => {
@@ -206,14 +176,14 @@ describe('Start of tests', () => {
     describe('Proposal passing block', async () => {
       it('Should successfully pass the proposal', async () => {
         let response, id, state
-        ;[response, id, state] = await propose([whale, ProposalContract, 'Lottery Upgrade'])
+        ;[response, id, state] = await propose([whale, ProposalContract, 'Gas Upgrade'])
 
         const { events } = await response.wait()
         const args = events.find(({ event }) => event == 'ProposalCreated').args
         expect(args.id).to.be.equal(id)
         expect(args.proposer).to.be.equal(whale.address)
         expect(args.target).to.be.equal(ProposalContract.address)
-        expect(args.description).to.be.equal('Lottery Upgrade')
+        expect(args.description).to.be.equal('Gas Upgrade')
         expect(state).to.be.equal(ProposalState.Pending)
 
         await minewait((await GovernanceContract.VOTING_DELAY()).add(1).toNumber())
@@ -253,7 +223,7 @@ describe('Start of tests', () => {
           '0x' + handlerAddress.slice(26),
         )
         GovernanceContract = await ethers.getContractAt(
-          'GovernanceLotteryUpgrade',
+          'GovernanceGasUpgrade',
           GovernanceContract.address,
         )
 
@@ -424,30 +394,27 @@ describe('Start of tests', () => {
         torn = await TornToken.connect(largeBidder)
         await torn.approve(GnosisEasyAuction.address, pE(200))
 
-        //			await expect(() => GnosisEasyAuction.placeSellOrders(
-        //				BigNumber.from(38),
-        //				[
-        //					pE(1.1),pE(1.1)
-        //				],
-        //				[
-        //					pE(40),pE(40)
-        //				],
-        //				[
-        //					ethers.utils.keccak256(ethers.utils.defaultAbiCoder.encode(["uint256"], [0]))
-        //				],
-        //				ethers.utils.defaultAbiCoder.encode(["uint256"], [0]),
-        //				{
-        //					gasLimit: BigNumber.from("30000000"),
-        //					gasPrice: BigNumber.from(6),
-        //				}
-        //			)).to.changeTokenBalance(WETH, GnosisEasyAuction, pE(80));
-      })
+  //       await GnosisEasyAuction.placeSellOrders(
+  //       	BigNumber.from(38),
+  //       	[
+  //       		pE(1.1),pE(1.1)
+  //       	],
+  //       	[
+  //       		pE(40),pE(40)
+  //       	],
+  //       	[
+  //       	],
+  //       	ethers.utils.defaultAbiCoder.encode(["bytes"], ["0x0000000000000000000000000000000000000000000000000000000000000000"]),
+  //       	{
+  //       		gasLimit: BigNumber.from("30000000"),
+  //       		gasPrice: BigNumber.from(6),
+  //       	}
+  //       )
+       })
 
       it('Test multiple accounts proposal', async () => {
         ProposalContract = await MockProposalFactory.deploy()
-        const lotteryAddress = await GovernanceContract.lottery()
-        console.log(lotteryAddress)
-        const GovernanceLottery = await ethers.getContractAt('TornadoLottery', lotteryAddress)
+
         clog(
           'Torn balance of governance contract: ',
           (await TornToken.balanceOf(GovernanceContract.address)).toString(),
@@ -469,8 +436,7 @@ describe('Start of tests', () => {
         /////////////////// PREPARE MULTISIG AND COMPENSATIONS
         let multiGov = await GovernanceContract.connect(tornadoMultisig)
         let multiTorn = await TornToken.connect(tornadoMultisig)
-        let multiLottery = await ethers.getContractAt('TornadoLottery', await GovernanceContract.lottery())
-        multiLottery = multiLottery.connect(tornadoMultisig)
+
         await dore.sendTransaction({ to: tornadoMultisig.address, value: pE(1) })
         await expect(multiGov.setGasCompensations(pE(500))).to.not.be.reverted
         ///////////////////////////// VOTE ////////////////////////////
@@ -481,8 +447,6 @@ describe('Start of tests', () => {
         let signerArmyBalanceInitial = []
         let signerArmyBalanceDiff = []
         let gasUsedArray = []
-
-        const gov1 = await GovernanceContract.connect(dore)
 
         snapshotIdArray[3] = await sendr('evm_snapshot', [])
 
@@ -676,24 +640,6 @@ describe('Start of tests', () => {
           '--------------------------------------------------------------------',
           '\n',
         )
-        /////////////////////////////// CHECKS AND PREPARE GAS TX FOR MULTISIG ///////////////////////////////
-        expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(0)
-
-        const tx1 = {
-          to: tornadoMultisig.address,
-          value: pE(500),
-        }
-        await dore.sendTransaction(tx1)
-
-        await expect(multiTorn.approve(GovernanceContract.address, pE(1000000))).to.not.be.reverted
-
-        // FAIL PREPARE
-        await expect(
-          multiLottery.prepareProposalForPayouts(
-            id,
-            ethers.utils.parseUnits('16666', 'szabo', ethers.utils.parseEther('2')),
-          ),
-        ).to.be.reverted
         /////////////////////////////// INCREMENT AGAIN //////////////////////////////////
         await minewait(
           (
@@ -710,99 +656,6 @@ describe('Start of tests', () => {
         } else {
           await expect(GovernanceContract.execute(id)).to.not.be.reverted
         }
-
-        /////////////////////////// FUND WITH CHAINLINK
-        await dore.sendTransaction({ to: linkMarine.address, value: pE(1) })
-        ChainlinkToken = await ChainlinkToken.connect(linkMarine)
-
-        await ChainlinkToken.transfer(GovernanceLottery.address, pE(500))
-        expect(await ChainlinkToken.balanceOf(GovernanceLottery.address)).to.equal(pE(500))
-
-        ///////////////////////////////////////// PREPARE //////////////////////////////////////////////////////
-        await expect(
-          multiLottery.prepareProposalForPayouts(
-            id,
-            ethers.utils.parseUnits('16666', 'szabo'),
-            ethers.utils.parseEther('2'),
-          ),
-        ).to.not.be.reverted
-        clog('Transfer per winner: ', (await GovernanceLottery.proposalsData(id))[1].toString())
-
-        expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(1)
-
-        /////////////////////////////////// PREPARE CHAINLINK ////////////////////////////////
-        let vrfGov = await GovernanceLottery.connect(vrfCoordinator)
-        await sendr('hardhat_setBalance', [vrfCoordinator.address, '0x1B1AE4D6E2EF500000'])
-
-        ///////////////////// FULFILL
-        const rId = await VRFRequestHelper.makeRequestId(
-          await GovernanceLottery.keyHash(),
-          await VRFRequestHelper.makeVRFInputSeed(
-            await GovernanceLottery.keyHash(),
-            BigNumber.from(0),
-            GovernanceLottery.address,
-            BigNumber.from(0),
-          ),
-        )
-        const rfrresponse = await vrfGov.rawFulfillRandomness(rId, someHex[0])
-        const rfrreceipt = await rfrresponse.wait()
-
-        GovernanceContract = await GovernanceContract.connect(whale)
-
-        console.log('RFR gas used: ', rfrreceipt.cumulativeGasUsed.toString())
-
-        expect((await GovernanceLottery.proposalsData(id))[0]).to.equal(2)
-
-        console.log('*----＼(^＼)(／^)／--WINNING NUMBERS--＼(^＼)(／^)／----*')
-        for (let i = 0; i < 10; i++) {
-          console.log(
-            (
-              await GovernanceLottery.expand(
-                await GovernanceLottery.randomNumbers(id),
-                BigNumber.from(i),
-                (await GovernanceLottery.getSqrtTornSumForProposal(id)).add(1),
-              )
-            ).toString(),
-          )
-        }
-        console.log('--------------------------------------------------', '\n')
-        let claimGasSum = BigNumber.from(0)
-        for (i = 0; i < 50; i++) {
-          let govl = await GovernanceLottery.connect(signerArmy[i])
-          const voterIndex = await GovernanceLottery.findUserIndex(id, signerArmy[i].address)
-
-          let winIndex = -1
-          for (j = 0; j < 10; j++) {
-            if (
-              await GovernanceLottery.checkIfAccountHasWon(
-                id,
-                voterIndex,
-                await GovernanceLottery.expand(
-                  await GovernanceLottery.randomNumbers(id),
-                  BigNumber.from(j),
-                  (await GovernanceLottery.getSqrtTornSumForProposal(id)).add(1),
-                ),
-              )
-            ) {
-              if (winIndex != -1) {
-                console.log('This account won twice! (one payout)')
-              }
-              winIndex = j
-            }
-          }
-          if (winIndex >= 0) {
-            const claimResponse = await govl.claimReward(id, voterIndex, winIndex)
-            claimGasSum = claimGasSum.add((await claimResponse.wait()).cumulativeGasUsed)
-            console.log(
-              `Account ${i} has won: `,
-              (await TornToken.balanceOf(signerArmy[i].address)).toString(),
-              ' With number index: ',
-              winIndex,
-            )
-          }
-        }
-        claimGasSum = claimGasSum.div(50)
-        console.log('\n', 'Claim function gas use on average: ', claimGasSum.toString())
       })
     })
   })
