@@ -13,7 +13,8 @@
     "lint": "yarn eslint && yarn prettier:check",
     "deploy": "yarn hardhat --network mainnet deploy_proposal --voting-period",
     "deploy:test": "yarn hardhat --network goerli deploy_proposal --voting-period",
-    "test": "yarn hardhat test test/test_all"
+    "test": "yarn test:all test/test_all",
+    "test:all": "yarn hardhat test"
   },
   "dependencies": {
     "@chainlink/contracts": "^0.2.1",
