@@ -58,7 +58,7 @@ module.exports = {
   networks: {
     hardhat: {
       forking: {
-        url: process.env.mainnetRPC,
+        url: `https://mainnet.infura.io/v3/${process.env.mainnet_rpc_key}`,
         blockNumber: 13042331,
       },
       initialBaseFeePerGas: 5,
@@ -70,15 +70,13 @@ module.exports = {
       timeout: 120000,
     },
     mainnet: {
-      url: process.env.mainnetRPC,
-      accounts: process.env.mainnetAccountPK
-        ? [process.env.mainnetAccountPK]
-        : { mnemonic: 'test test test test test test test test test test test junk' },
+      url: `https://mainnet.infura.io/v3/${process.env.mainnet_rpc_key}`,
+      accounts: [`${process.env.mainnet_account_pk}`],
       timeout: 2147483647,
     },
     goerli: {
-      url: process.env.goerliRPC,
-      accounts: [process.env.goerliAccountPK],
+      url: `https://goerli.infura.io/v3/${process.env.goerli_rpc_key}`,
+      accounts: [`${process.env.goerli_account_pk}`],
       timeout: 2147483647,
     },
   },
@@ -88,6 +86,6 @@ module.exports = {
     runOnCompile: true,
   },
   etherscan: {
-    apiKey: process.env.etherscanAPIKey,
+    apiKey: `${process.env.etherscan_api_key}`,
   },
 }
