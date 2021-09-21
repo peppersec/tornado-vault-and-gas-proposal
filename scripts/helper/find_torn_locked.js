@@ -3,7 +3,6 @@ const { BigNumber } = require('@ethersproject/bignumber')
 
 async function main() {
   const transferTopic = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
-  const proposalExecutionTopic = '0x712ae1383f79ac853f8d882153778e0260ef8f03b504e2866e0593e04d2b291f'
   const GovernanceContract = '5efda50f22d34f262c29268506c5fa42cb56a1ce'
   const TornToken = '0x77777feddddffc19ff86db637967013e6c6a116c'
   const startBlock = 11480636
@@ -38,7 +37,7 @@ async function main() {
   let maxBlock = 0,
     minBlock = 900000000
 
-  for (log of logsInflows) {
+  for (const log of logsInflows) {
     const tx = await network.provider.request({
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],
@@ -54,7 +53,7 @@ async function main() {
     }
   }
 
-  for (log of logsOutflows) {
+  for (const log of logsOutflows) {
     const tx = await network.provider.request({
       method: 'eth_getTransactionByHash',
       params: [log.transactionHash],

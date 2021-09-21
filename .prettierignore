@@ -4,3 +4,5 @@ cache
 artifacts
 build
 dist
+contracts/libraries/EtherSend.sol
+contracts/VaultAndGasProposal.sol

@@ -22,7 +22,7 @@ async function main() {
 
   let fullLogs = []
 
-  for (log of logs) {
+  for (const log of logs) {
     fullLogs.push(
       (
         await network.provider.request({
@@ -35,9 +35,9 @@ async function main() {
 
   let filteredLogs = []
 
-  for (entry of fullLogs) {
-    for (log of entry) {
-      for (topic of log.topics) {
+  for (const entry of fullLogs) {
+    for (const log of entry) {
+      for (const topic of log.topics) {
         if (topic == transferTopic) {
           filteredLogs.push(log)
         }
@@ -48,7 +48,7 @@ async function main() {
   let results = []
   let sum = BigNumber.from(0)
 
-  for (log of filteredLogs) {
+  for (const log of filteredLogs) {
     if ('0x' + log.topics[1].slice(26) == GovernanceContract) {
       const value = BigNumber.from(log.data)
       results.push(value.toString())

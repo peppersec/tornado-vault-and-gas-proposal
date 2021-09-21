@@ -25,10 +25,7 @@ contract GasCompensationVault {
   }
 
   function withdrawToGovernance(uint256 amount) external onlyGovernance {
-    require(
-      GovernanceAddress.sendEther((amount > address(this).balance) ? address(this).balance : amount),
-      "pay fail"
-    );
+    require(GovernanceAddress.sendEther((amount > address(this).balance) ? address(this).balance : amount), "pay fail");
   }
 
   receive() external payable {}

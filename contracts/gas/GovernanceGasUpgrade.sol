@@ -8,11 +8,11 @@ import { GasCompensator } from "./GasCompensator.sol";
 import { Math } from "@openzeppelin/contracts/math/Math.sol";
 
 contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
-
-  constructor(
-    address _gasCompLogic,
-    address _userVault
-  ) public GovernanceVaultUpgrade(_userVault) GasCompensator(_gasCompLogic) {}
+  constructor(address _gasCompLogic, address _userVault)
+    public
+    GovernanceVaultUpgrade(_userVault)
+    GasCompensator(_gasCompLogic)
+  {}
 
   modifier onlyMultisig() {
     require(msg.sender == returnMultisigAddress(), "only multisig");

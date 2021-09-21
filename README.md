@@ -5,8 +5,7 @@ Repository for a proposal to upgrade governance logic with a Chainlink VRF-suppo
 ## Setup
 
 ```bash
-yarn 
+yarn
 cp .env.example .env # fill it out
 yarn test
 ```
-

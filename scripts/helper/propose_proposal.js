@@ -1,7 +1,6 @@
 require('dotenv').config()
 const { ethers } = require('hardhat')
 
-// THIS IS ASSUMING YOU HAVE ENOUGH LOCKED TORN TO PROPOSE
 async function propose(proposalArgs) {
   const proposer = proposalArgs[0]
   const ProposalContract = proposalArgs[1]

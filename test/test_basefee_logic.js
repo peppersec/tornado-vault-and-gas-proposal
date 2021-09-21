@@ -7,30 +7,11 @@ describe('Start of tests', () => {
   let BasefeeProxyFactory
   let BasefeeProxyContract
 
-  let firstWallet
-
-  let signerArray = []
-
-  let timestamp = async () => {
-    return (await ethers.provider.getBlock('latest')).timestamp
-  }
-
-  let sendr = async (method, params) => {
-    return await ethers.provider.send(method, params)
-  }
-
   let clog = (...x) => {
     console.log(x)
   }
 
-  let pE = (x) => {
-    return ethers.utils.parseEther(`${x}`)
-  }
-
   before(async () => {
-    signerArray = await ethers.getSigners()
-    firstWallet = signerArray[0]
-
     BasefeeLogicFactory = await ethers.getContractFactory('BASEFEE_LOGIC')
     BasefeeLogicContract = await BasefeeLogicFactory.deploy()
     await BasefeeLogicContract.deployTransaction.wait(3)

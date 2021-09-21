@@ -29,9 +29,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
   function executeProposal() external {
     address vault = address(new TornadoVault());
 
-    LoopbackProxy(returnPayableGovernance()).upgradeTo(
-      address(new GovernanceGasUpgrade(gasCompLogic, vault))
-    );
+    LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceGasUpgrade(gasCompLogic, vault)));
 
     GovernanceGasUpgrade newGovernance = GovernanceGasUpgrade(payable(GovernanceAddress));
     IERC20 tornToken = IERC20(TornTokenAddress);
@@ -44,14 +42,15 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     For an explanation as to how this variable has been calculated with these fix values, please look at:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md
     */
-    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18;
+    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 +
+      22916666666666666666666 +
+      54999999999999969408000 -
+      27e18;
 
     require(
       tornToken.transfer(
         address(newGovernance.userVault()),
-        (tornToken.balanceOf(address(this))).sub(
-          GovernanceVesting.released().sub(totalOutflowsOfProposalExecutions)
-        )
+        (tornToken.balanceOf(address(this))).sub(GovernanceVesting.released().sub(totalOutflowsOfProposalExecutions))
       ),
       "TORN: transfer failed"
     );

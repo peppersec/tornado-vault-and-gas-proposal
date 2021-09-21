@@ -5,6 +5,7 @@ task('propose_proposal', 'propose proposal that uses factory')
   .addParam('proposalAddress', 'address of proposal')
   .setAction(async (taskArgs, hre) => {
     const proposalName = 'lottery-and-vault-proposal'
+    const signerArray = hre.ethers.getSigners()
 
     const GovernanceContract = await hre.ethers.getContractAt(
       'Governance',
@@ -12,7 +13,7 @@ task('propose_proposal', 'propose proposal that uses factory')
     )
     await GovernanceContract.propose(taskArgs.proposalAddress, proposalName)
 
-    const id = await GovernanceContract.latestProposalIds(proposer.address)
+    const id = await GovernanceContract.latestProposalIds(signerArray[0].address)
     const state = await GovernanceContract.state(id)
 
     console.log('Proposal with name: ', proposalName, ' proposed with id: ', id, ', has state: ', state)
