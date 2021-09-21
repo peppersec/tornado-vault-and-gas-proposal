@@ -42,10 +42,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     For an explanation as to how this variable has been calculated with these fix values, please look at:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md
     */
-    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 +
-      22916666666666666666666 +
-      54999999999999969408000 -
-      27e18;
+    uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18;
 
     require(
       tornToken.transfer(
@@ -55,13 +52,15 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
       "TORN: transfer failed"
     );
 
+    uint256 amountOfTornToAuctionOff = 100 ether;
+
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
-    tornToken.transfer(address(auctionHandler), 100e18);
+    tornToken.transfer(address(auctionHandler), amountOfTornToAuctionOff);
 
     /**
     As with above, please see:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/contracts/auction/Auction.md
     */
-    auctionHandler.initializeAuction(block.timestamp + 5 days, 100 ether, 151e16, 1 ether, 0);
+    auctionHandler.initializeAuction(block.timestamp + 5 days, uint96(amountOfTornToAuctionOff), 151e16, 1 ether, 0);
   }
 }

@@ -47,12 +47,9 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
 
   function convertAndTransferToGovernance() external {
     IWETH(WETHAddress).withdraw(IWETH(WETHAddress).balanceOf(address(this)));
-    require(address(this).balance > 0, "something went wrong");
-    require(GovernanceAddress.sendEther(address(this).balance), "pay fail");
-  }
-
-  function retrieveTorn() external {
-    IERC20(TornTokenAddress).transfer(GovernanceAddress, IERC20(TornTokenAddress).balanceOf(address(this)));
+    if (address(this).balance > 0) require(GovernanceAddress.sendEther(address(this).balance), "pay fail");
+    if (IERC20(TornTokenAddress).balanceOf(address(this)) > 0)
+      IERC20(TornTokenAddress).transfer(GovernanceAddress, IERC20(TornTokenAddress).balanceOf(address(this)));
   }
 
   receive() external payable {
