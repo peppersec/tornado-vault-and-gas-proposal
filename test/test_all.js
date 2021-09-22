@@ -24,6 +24,9 @@ describe('Start of tests', () => {
   let GasCompensationFactory
   let GasCompensationContract
 
+  let OrderHelperFactory
+  let OrderHelper
+
   //////////////////// IMPERSONATED
   let tornadoMultisig
 
@@ -93,6 +96,9 @@ describe('Start of tests', () => {
     ProposalFactory = await ethers.getContractFactory('VaultAndGasProposal')
 
     ProposalContract = await ProposalFactory.deploy(GasCompensationContract.address, 260000)
+
+    OrderHelperFactory = await ethers.getContractFactory('OrderEncoderHelper')
+    OrderHelper = await OrderHelperFactory.deploy()
 
     GovernanceContract = await ethers.getContractAt('Governance', proxy_address)
     GnosisEasyAuction = await ethers.getContractAt(
@@ -336,41 +342,122 @@ describe('Start of tests', () => {
         )
       })
 
-      it('Should test if auction will transfer ETH with handler properly', async function () {
-        //        const smallBidder = signerArray[1]
-        const largeBidder = signerArray[2]
-        //       const mediumBidder = signerArray[3]
+      it('Should test if auction will behave properly', async function () {
+        snapshotIdArray[2] = await sendr('evm_snapshot', [])
 
-        GnosisEasyAuction = await GnosisEasyAuction.connect(largeBidder)
+        let orderArray = []
 
-        WETH = await WETH.connect(largeBidder)
-        await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(
-          largeBidder,
-          BigNumber.from(0).sub(pE(100)),
+        /**
+         * 100 TORN in to total
+         * Price as of time of writing 1 ETH == 51.66 TORN
+         * First test is an overbought auction, 20 buyers compete for 40 TORN
+         */
+        for (let i = 0; i < signerArray.length; i++) {
+          const bidder = signerArray[i]
+
+          WETH = await WETH.connect(bidder)
+          await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(
+            bidder,
+            BigNumber.from(0).sub(pE(100)),
+          )
+          await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
+
+          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
+
+          const buyAmount = pE(40)
+          const sellAmount = pE(0.73 + i / 100)
+
+          await GnosisEasyAuction.placeSellOrders(
+            38,
+            [buyAmount],
+            [sellAmount],
+            ['0x0000000000000000000000000000000000000000000000000000000000000001'],
+            '0x',
+          )
+
+          orderArray[i] = await OrderHelper.encodeOrder(
+            await GnosisEasyAuction.numUsers(),
+            buyAmount,
+            sellAmount,
+          )
+        }
+
+        let auctionEndDt = (await GnosisEasyAuction.auctionData(38))[3].sub(BigNumber.from(await timestamp()))
+
+        await minewait(auctionEndDt.toNumber())
+
+        await GnosisEasyAuction.settleAuction(38)
+
+        for (let i = 0; i < signerArray.length; i++) {
+          await GnosisEasyAuction.claimFromParticipantOrder(38, [orderArray[i]])
+        }
+
+        let claimedSum = BigNumber.from(0)
+
+        for (let i = 0; i < signerArray.length; i++) {
+          const claimed = await TornToken.balanceOf(signerArray[i].address)
+          claimedSum = claimedSum.add(claimed)
+        }
+
+        expect(claimedSum).to.closeTo(ethers.utils.parseEther('100'), ethers.utils.parseUnits('1', 'szabo'))
+
+        /// Now revert and test with lower
+        await sendr('evm_revert', [snapshotIdArray[2]])
+        snapshotIdArray[2] = await sendr('evm_snapshot', [])
+
+        for (let i = 0; i < signerArray.length; i++) {
+          const bidder = signerArray[i]
+
+          WETH = await WETH.connect(bidder)
+          await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(
+            bidder,
+            BigNumber.from(0).sub(pE(100)),
+          )
+          await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
+
+          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
+
+          const buyAmount = pE(0.5)
+          const sellAmount = pE(0.53 + i / 100)
+
+          await GnosisEasyAuction.placeSellOrders(
+            38,
+            [buyAmount],
+            [sellAmount],
+            ['0x0000000000000000000000000000000000000000000000000000000000000001'],
+            '0x',
+          )
+
+          orderArray[i] = await OrderHelper.encodeOrder(
+            await GnosisEasyAuction.numUsers(),
+            buyAmount,
+            sellAmount,
+          )
+        }
+
+        auctionEndDt = (await GnosisEasyAuction.auctionData(38))[3]
+          .sub(BigNumber.from(await timestamp()))
+          .add(100000)
+
+        await minewait(auctionEndDt.toNumber())
+
+        await GnosisEasyAuction.settleAuction(38)
+
+        for (let i = 0; i < signerArray.length; i++) {
+          await GnosisEasyAuction.claimFromParticipantOrder(38, [orderArray[i]])
+        }
+
+        claimedSum = BigNumber.from(0)
+
+        for (let i = 0; i < signerArray.length; i++) {
+          const claimed = await TornToken.balanceOf(signerArray[i].address)
+          claimedSum = claimedSum.add(claimed)
+        }
+
+        expect(claimedSum).to.be.closeTo(
+          ethers.utils.parseEther('100'),
+          ethers.utils.parseUnits('1', 'szabo'),
         )
-        await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
-
-        let torn = await TornToken.connect(whale)
-        await TornToken.transfer(largeBidder.address, pE(200))
-        torn = await TornToken.connect(largeBidder)
-        await torn.approve(GnosisEasyAuction.address, pE(200))
-
-        //       await GnosisEasyAuction.placeSellOrders(
-        //       	BigNumber.from(38),
-        //       	[
-        //       		pE(1.1),pE(1.1)
-        //       	],
-        //       	[
-        //       		pE(40),pE(40)
-        //       	],
-        //       	[
-        //       	],
-        //       	ethers.utils.defaultAbiCoder.encode(["bytes"], ["0x0000000000000000000000000000000000000000000000000000000000000000"]),
-        //       	{
-        //       		gasLimit: BigNumber.from("30000000"),
-        //       		gasPrice: BigNumber.from(6),
-        //       	}
-        //       )
       })
 
       it('Test multiple accounts proposal', async function () {

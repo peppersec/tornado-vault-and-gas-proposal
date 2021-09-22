@@ -39,7 +39,7 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
       _minBuyAmount,
       _minBidPerOrder,
       _minFundingThreshold,
-      true,
+      false,
       address(0x0000000000000000000000000000000000000000),
       new bytes(0)
     );

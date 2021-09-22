@@ -55,5 +55,5 @@ IEasyAuction(EasyAuctionAddress).initiateAuction(
 
 - Addresses of the tokens being bought/sold (ETH/TORN).
 - orderCancellationEndDate -> date until order can be cancelled. For us, this is 0, meaning orders can't be cancelled once set.
-- isAtomicClosureAllowed -> when auction end date is reached, a participant may set a last order in exchange for closing the auction, meaning it incentivizes the user to end the auction (gas payments, time saving) by giving him a risk-free action at the end. For us, true
+- isAtomicClosureAllowed -> when auction end date is reached, a participant may set a last order in exchange for closing the auction, meaning it incentivizes the user to end the auction (gas payments, time saving) by giving him a risk-free action at the end. For us, false, due to tests showing that dust collection might not work if this is used.
 - Last two fields are for access management, we have no whitelist for the auction, thus redundant and set to 0 for us.
