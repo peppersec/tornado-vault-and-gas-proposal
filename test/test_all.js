@@ -443,9 +443,7 @@ describe('Start of tests', () => {
           )
         }
 
-        auctionEndDt = (await GnosisEasyAuction.auctionData(38))[3]
-          .sub(BigNumber.from(await timestamp()))
-          .add(100000)
+        auctionEndDt = (await GnosisEasyAuction.auctionData(38))[3].sub(BigNumber.from(await timestamp()))
 
         await minewait(auctionEndDt.toNumber())
 
@@ -472,6 +470,60 @@ describe('Start of tests', () => {
         expect(claimedSum).to.be.closeTo(
           ethers.utils.parseEther('100'),
           ethers.utils.parseUnits('1', 'szabo'),
+        )
+
+        /// Now revert and test with below funding
+        await sendr('evm_revert', [snapshotIdArray[2]])
+        snapshotIdArray[2] = await sendr('evm_snapshot', [])
+
+        for (let i = 0; i < signerArray.length; i++) {
+          const bidder = signerArray[i]
+
+          WETH = await WETH.connect(bidder)
+          await expect(() => WETH.deposit({ value: pE(100) })).to.changeEtherBalance(
+            bidder,
+            BigNumber.from(0).sub(pE(100)),
+          )
+
+          const buyAmount = pE(0.5)
+          const sellAmount = pE(0.03 + i / 100)
+
+          await WETH.approve(GnosisEasyAuction.address, sellAmount)
+
+          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
+
+          await GnosisEasyAuction.placeSellOrders(
+            38,
+            [buyAmount],
+            [sellAmount],
+            ['0x0000000000000000000000000000000000000000000000000000000000000001'],
+            '0x',
+          )
+
+          orderArray[i] = await OrderHelper.encodeOrder(
+            await GnosisEasyAuction.numUsers(),
+            buyAmount,
+            sellAmount,
+          )
+        }
+
+        auctionEndDt = (await GnosisEasyAuction.auctionData(38))[3].sub(BigNumber.from(await timestamp()))
+
+        await minewait(auctionEndDt.toNumber())
+
+        await GnosisEasyAuction.settleAuction(38)
+
+        for (let i = 0; i < signerArray.length; i++) {
+          await GnosisEasyAuction.claimFromParticipantOrder(38, [orderArray[i]])
+          console.log(
+            `Signer ${i} claimed: `,
+            (await TornToken.balanceOf(signerArray[i].address)).toString(),
+            ' torn',
+          )
+        }
+
+        expect(await TornToken.balanceOf(TornadoAuctionHandler.address)).to.equal(
+          ethers.utils.parseEther('100'),
         )
       })
 
