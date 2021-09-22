@@ -33,7 +33,11 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
     external
     virtual
     override
-    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), (msg.sender == tx.origin ? 21e3 : 0))
+    gasCompensation(
+      msg.sender,
+      !hasAccountVoted(proposalId, msg.sender) && !checkIfQuorumReached(proposalId),
+      (msg.sender == tx.origin ? 21e3 : 0)
+    )
   {
     _castVote(msg.sender, proposalId, support);
   }
@@ -46,13 +50,21 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
     external
     virtual
     override
-    gasCompensation(msg.sender, !hasAccountVoted(proposalId, msg.sender), (msg.sender == tx.origin ? 21e3 : 0))
+    gasCompensation(
+      msg.sender,
+      !hasAccountVoted(proposalId, msg.sender) && !checkIfQuorumReached(proposalId),
+      (msg.sender == tx.origin ? 21e3 : 0)
+    )
   {
     require(from.length > 0, "Can not be empty");
     for (uint256 i = 0; i < from.length; i++) {
       require(delegatedTo[from[i]] == msg.sender || from[i] == msg.sender, "Governance: not authorized");
       _castVote(from[i], proposalId, support);
     }
+  }
+
+  function checkIfQuorumReached(uint256 proposalId) public view returns (bool) {
+    return (proposals[proposalId].forVotes + proposals[proposalId].againstVotes >= QUORUM_VOTES);
   }
 
   /// @notice checker for success on deployment
