@@ -346,6 +346,7 @@ describe('Start of tests', () => {
         snapshotIdArray[2] = await sendr('evm_snapshot', [])
 
         let orderArray = []
+        const initialHandlerBalance = await WETH.balanceOf(TornadoAuctionHandler.address)
 
         /**
          * 100 TORN in to total
@@ -360,12 +361,13 @@ describe('Start of tests', () => {
             bidder,
             BigNumber.from(0).sub(pE(100)),
           )
-          await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
-
-          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
 
           const buyAmount = pE(40)
-          const sellAmount = pE(0.73 + i / 100)
+          const sellAmount = pE(3.73 + i / 100)
+
+          await WETH.approve(GnosisEasyAuction.address, sellAmount)
+
+          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
 
           await GnosisEasyAuction.placeSellOrders(
             38,
@@ -388,9 +390,14 @@ describe('Start of tests', () => {
 
         await GnosisEasyAuction.settleAuction(38)
 
+        expect(await WETH.balanceOf(TornadoAuctionHandler.address)).to.be.gt(initialHandlerBalance)
+
         for (let i = 0; i < signerArray.length; i++) {
           await GnosisEasyAuction.claimFromParticipantOrder(38, [orderArray[i]])
+          const balance = await TornToken.balanceOf(signerArray[i].address)
+          if (balance.toString() != '0') console.log(`Signer ${i} claimed:`, balance.toString(), ' torn')
         }
+        console.log('All other signers got nothing!')
 
         let claimedSum = BigNumber.from(0)
 
@@ -413,12 +420,13 @@ describe('Start of tests', () => {
             bidder,
             BigNumber.from(0).sub(pE(100)),
           )
-          await WETH.approve(GnosisEasyAuction.address, pE(1000000000))
-
-          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
 
           const buyAmount = pE(0.5)
           const sellAmount = pE(0.53 + i / 100)
+
+          await WETH.approve(GnosisEasyAuction.address, sellAmount)
+
+          GnosisEasyAuction = await GnosisEasyAuction.connect(bidder)
 
           await GnosisEasyAuction.placeSellOrders(
             38,
@@ -443,8 +451,15 @@ describe('Start of tests', () => {
 
         await GnosisEasyAuction.settleAuction(38)
 
+        expect(await WETH.balanceOf(TornadoAuctionHandler.address)).to.be.gt(initialHandlerBalance)
+
         for (let i = 0; i < signerArray.length; i++) {
           await GnosisEasyAuction.claimFromParticipantOrder(38, [orderArray[i]])
+          console.log(
+            `Signer ${i} claimed: `,
+            (await TornToken.balanceOf(signerArray[i].address)).toString(),
+            ' torn',
+          )
         }
 
         claimedSum = BigNumber.from(0)
