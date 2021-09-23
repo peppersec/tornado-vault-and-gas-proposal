@@ -8,8 +8,9 @@ const accountList = require('../resources/accounts.json')
 const EasyAuctionJson = require('@gnosis.pm/ido-contracts/build/artifacts/contracts/EasyAuction.sol/EasyAuction.json')
 
 describe('Start of tests', () => {
-  ///// CONSTANTS
+  ///// ON-CHAIN CONSTANTS
   let proxy_address = '0x5efda50f22d34F262c29268506C5Fa42cB56A1Ce'
+  let quorumVotes
 
   ///////////////////////////// CONTRACTS
   let GovernanceContract
@@ -111,6 +112,8 @@ describe('Start of tests', () => {
       '0x77777FeDdddFfC19Ff86DB637967013e6C6A116C',
     )
     WETH = await ethers.getContractAt('IWETH', '0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2')
+
+    quorumVotes = await GovernanceContract.QUORUM_VOTES()
   })
 
   describe('Test complete functionality', () => {
@@ -253,7 +256,7 @@ describe('Start of tests', () => {
         }
 
         const whale0Balance = await TornToken.balanceOf(whales[0].address)
-        const toTransfer = whale0Balance.sub(pE(10000)).div(numberOfVoters)
+        const toTransfer = whale0Balance.sub(pE(10000)).div(numberOfVoters * 3)
         let torn0 = await TornToken.connect(whales[0])
         const oldBalance = await TornToken.balanceOf(await GovernanceContract.userVault())
         let lockedSum = BigNumber.from(0)
@@ -528,6 +531,12 @@ describe('Start of tests', () => {
       })
 
       it('Test multiple accounts proposal', async function () {
+        let checkIfQuorumFulfilled = async function (proposalId) {
+          const proposalData = await GovernanceContract.proposals(proposalId)
+          const allVotes = proposalData[4].add(proposalData[5])
+          return allVotes.gte(quorumVotes)
+        }
+
         ProposalContract = await MockProposalFactory.deploy()
 
         clog(
@@ -577,7 +586,10 @@ describe('Start of tests', () => {
           } else {
             response = await gov.castDelegatedVote(votingAddressArray[i], id, false, overrides)
           }
-          signerArmyBalanceDiff[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+
+          signerArmyBalanceDiff[i] = !(await checkIfQuorumFulfilled(id))
+            ? signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+            : signerArmyBalanceDiff[i - 1]
 
           const receipt = await response.wait()
           gasUsedArray[i] = receipt.cumulativeGasUsed
@@ -597,7 +609,9 @@ describe('Start of tests', () => {
             response = await gov.castVote(id, false, overrides)
           }
 
-          signerArmyBalanceDiff[i] = signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+          signerArmyBalanceDiff[i] = !(await checkIfQuorumFulfilled(id))
+            ? signerArmyBalanceInitial[i].sub(await signerArmy[i].getBalance())
+            : signerArmyBalanceDiff[i - 1]
 
           const receipt = await response.wait()
           gasUsedArray[i] = receipt.cumulativeGasUsed
@@ -679,6 +693,7 @@ describe('Start of tests', () => {
           }
 
           const receipt = await response.wait()
+
           gasUsedWithoutCompensation[i] = receipt.cumulativeGasUsed
         }
 
