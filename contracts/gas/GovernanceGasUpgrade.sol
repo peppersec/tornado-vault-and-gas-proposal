@@ -63,14 +63,14 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
     }
   }
 
-  function checkIfQuorumReached(uint256 proposalId) public view returns (bool) {
-    return (proposals[proposalId].forVotes + proposals[proposalId].againstVotes >= QUORUM_VOTES);
-  }
-
   /// @notice checker for success on deployment
   /// @return returns precise version of governance
   function version() external pure virtual override returns (string memory) {
     return "2.lottery-and-gas-upgrade";
+  }
+
+  function checkIfQuorumReached(uint256 proposalId) public view returns (bool) {
+    return (proposals[proposalId].forVotes + proposals[proposalId].againstVotes >= QUORUM_VOTES);
   }
 
   function hasAccountVoted(uint256 proposalId, address account) public view returns (bool) {
