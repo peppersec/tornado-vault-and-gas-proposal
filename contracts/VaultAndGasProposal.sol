@@ -21,6 +21,8 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
   address public immutable gasCompLogic;
   uint256 public immutable votingPeriod;
 
+  event TornadoAuctionHandlerCreated(address indexed handler);
+
   constructor(address _gasCompLogic, uint256 _votingPeriod) public {
     gasCompLogic = _gasCompLogic;
     votingPeriod = _votingPeriod;
@@ -55,6 +57,9 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     uint256 amountOfTornToAuctionOff = 100 ether;
 
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
+
+    emit TornadoAuctionHandlerCreated(address(auctionHandler));
+
     tornToken.transfer(address(auctionHandler), amountOfTornToAuctionOff);
 
     /**

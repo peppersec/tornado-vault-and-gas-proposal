@@ -14,12 +14,6 @@ contract TornadoAuctionHandler is ImmutableGovernanceInformation {
   address public constant EasyAuctionAddress = 0x0b7fFc1f4AD541A4Ed16b40D8c37f0929158D101;
   address public constant WETHAddress = 0xC02aaA39b223FE8D0A0e5C4F27eAD9083C756Cc2;
 
-  event TornadoAuctionHandlerCreated(address indexed _handler);
-
-  constructor() public {
-    emit TornadoAuctionHandlerCreated(address(this));
-  }
-
   function initializeAuction(
     uint256 _auctionEndDate,
     uint96 _auctionedSellAmount,
