@@ -14,11 +14,15 @@ import { GovernanceGasUpgrade } from "./gas/GovernanceGasUpgrade.sol";
 import { IGovernanceVesting } from "./interfaces/IGovernanceVesting.sol";
 import { ImmutableGovernanceInformation } from "./ImmutableGovernanceInformation.sol";
 
+/**
+* @notice This proposal should upgrade governance to the vault and gas version without breaking any logic.
+* */
 contract VaultAndGasProposal is ImmutableGovernanceInformation {
   using SafeMath for uint256;
 
   IGovernanceVesting public constant GovernanceVesting = IGovernanceVesting(0x179f48C78f57A3A78f0608cC9197B8972921d1D2);
   address public immutable gasCompLogic;
+  /// @notice the new voting period we would like to include
   uint256 public immutable votingPeriod;
 
   event TornadoAuctionHandlerCreated(address indexed handler);
@@ -28,6 +32,8 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     votingPeriod = _votingPeriod;
   }
 
+  /// @notice the entry point for the governance upgrade logic execution
+  /// @dev this function bundles all of the initialization logic for all of the contracts of the project
   function executeProposal() external {
     address vault = address(new TornadoVault());
 
