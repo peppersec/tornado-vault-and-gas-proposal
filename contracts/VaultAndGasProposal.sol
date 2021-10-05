@@ -39,7 +39,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
 
     LoopbackProxy(returnPayableGovernance()).upgradeTo(address(new GovernanceGasUpgrade(gasCompLogic, vault)));
 
-    GovernanceGasUpgrade newGovernance = GovernanceGasUpgrade(payable(GovernanceAddress));
+    GovernanceGasUpgrade newGovernance = GovernanceGasUpgrade(returnPayableGovernance());
     IERC20 tornToken = IERC20(TornTokenAddress);
 
     newGovernance.setVotingPeriod(votingPeriod);

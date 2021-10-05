@@ -40,7 +40,7 @@ abstract contract GasCompensator {
     if (eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(_baseFee());
+      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(gasCompensationVault.getBasefee());
 
       gasCompensationVault.compensateGas(account, toCompensate);
     } else {
@@ -57,12 +57,4 @@ abstract contract GasCompensator {
    * @notice inheritable unimplemented function to deposit ether into the vault
    * */
   function setGasCompensations(uint256 _gasCompensationsLimit) external virtual;
-
-  /**
-   * @notice return the basefee by calling to vault
-   * @return the basefee of the block
-   * */
-  function _baseFee() internal view returns (uint256) {
-    return gasCompensationVault.getBasefee();
-  }
 }

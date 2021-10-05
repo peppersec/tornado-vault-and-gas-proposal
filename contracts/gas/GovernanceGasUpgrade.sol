@@ -77,36 +77,18 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
   }
 
   /**
-  * @notice function to cast callers votes and votes delegated to the caller
-  * @dev IMPORTANT: This function uses the gasCompensation modifier.
-  *                 as such this function can trigger a payable fallback.
-                    It is not possible to vote without revert more than once,
-		    without hasAccountVoted being true, eliminating gas refunds in this case.
-		    Gas compensation is also using the low level send(), forwarding 23000 gas 
-		    as to disallow further logic execution above that threshold.
-  * @param from array of addresses that should have delegated to voter
-  * @param proposalId id of proposal account is voting on
-  * @param support true if yes false if no
-  * */
+   * @notice function to cast callers votes and votes delegated to the caller
+   * @param from array of addresses that should have delegated to voter
+   * @param proposalId id of proposal account is voting on
+   * @param support true if yes false if no
+   * */
   function castDelegatedVote(
     address[] memory from,
     uint256 proposalId,
     bool support
-  )
-    external
-    virtual
-    override
-    gasCompensation(
-      msg.sender,
-      !hasAccountVoted(proposalId, msg.sender) && !checkIfQuorumReached(proposalId),
-      (msg.sender == tx.origin ? 21e3 : 0)
-    )
-  {
+  ) external virtual override {
     require(from.length > 0, "Can not be empty");
-    for (uint256 i = 0; i < from.length; i++) {
-      require(delegatedTo[from[i]] == msg.sender || from[i] == msg.sender, "Governance: not authorized");
-      _castVote(from[i], proposalId, support);
-    }
+    _castDelegatedVote(from, proposalId, support, !checkIfQuorumReached(proposalId));
   }
 
   /// @notice checker for success on deployment
@@ -142,5 +124,32 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
    * */
   function returnMultisigAddress() public pure virtual returns (address) {
     return 0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4;
+  }
+
+  /**
+   * @notice This should handle the logic of the external function
+   * @dev IMPORTANT: This function uses the gasCompensation modifier.
+   *                 as such this function can trigger a payable fallback.
+   *                 It is not possible to vote without revert more than once,
+   *        	     without hasAccountVoted being true, eliminating gas refunds in this case.
+   *      	     Gas compensation is also using the low level send(), forwarding 23000 gas
+   *   		     as to disallow further logic execution above that threshold.
+   * @param from array of addresses that should have delegated to voter
+   * @param proposalId id of proposal account is voting on
+   * @param support true if yes false if no
+   * @param gasCompensated true if gas should be compensated (given all internal checks pass)
+   * */
+  function _castDelegatedVote(
+    address[] memory from,
+    uint256 proposalId,
+    bool support,
+    bool gasCompensated
+  ) internal gasCompensation(msg.sender, gasCompensated, (msg.sender == tx.origin ? 21e3 : 0)) {
+    for (uint256 i = 0; i < from.length; i++) {
+      address delegator = from[i];
+      require(delegatedTo[delegator] == msg.sender || delegator == msg.sender, "Governance: not authorized");
+      require(!gasCompensated || !hasAccountVoted(proposalId, delegator), "Governance: voted already");
+      _castVote(delegator, proposalId, support);
+    }
   }
 }
