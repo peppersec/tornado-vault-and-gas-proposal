@@ -29,7 +29,7 @@
     "chai": "^4.3.4",
     "ethereum-waffle": "^3.4.0",
     "torn-token": "^1.0.4",
-    "tornado-governance": "^1.0.1"
+    "tornado-governance": "^1.0.3"
   },
   "devDependencies": {
     "@ethersproject/testcases": "^5.4.0",
