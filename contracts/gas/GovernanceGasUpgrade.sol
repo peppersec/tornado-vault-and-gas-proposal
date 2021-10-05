@@ -88,7 +88,7 @@ contract GovernanceGasUpgrade is GovernanceVaultUpgrade, GasCompensator {
     bool support
   ) external virtual override {
     require(from.length > 0, "Can not be empty");
-    _castDelegatedVote(from, proposalId, support, !checkIfQuorumReached(proposalId));
+    _castDelegatedVote(from, proposalId, support, !hasAccountVoted(proposalId, msg.sender) && !checkIfQuorumReached(proposalId));
   }
 
   /// @notice checker for success on deployment
