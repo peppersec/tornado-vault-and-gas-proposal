@@ -118,11 +118,6 @@ describe('Start of tests', () => {
 
   describe('Test complete functionality', () => {
     describe('Imitation block', () => {
-      it('Basefee logic should successfully return basefee', async function () {
-        const latestBlock = await ethers.provider.getBlock(await ethers.provider.getBlockNumber())
-        expect(await GasCompensationContract.getBasefee()).to.equal(latestBlock.baseFeePerGas.toString())
-      })
-
       it('Should successfully imitate tornado multisig', async function () {
         await sendr('hardhat_impersonateAccount', ['0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4'])
         tornadoMultisig = await ethers.getSigner('0xb04E030140b30C27bcdfaafFFA98C57d80eDa7B4')

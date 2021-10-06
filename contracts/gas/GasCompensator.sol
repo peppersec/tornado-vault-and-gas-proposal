@@ -5,11 +5,9 @@ pragma solidity ^0.6.12;
 import { SafeMath } from "@openzeppelin/contracts/math/SafeMath.sol";
 
 interface IGasCompensationVault {
-  function compensateGas(address recipient, uint256 amount) external;
+  function compensateGas(address recipient, uint256 gasAmount) external;
 
   function withdrawToGovernance(uint256 amount) external;
-
-  function getBasefee() external view returns (uint256);
 }
 
 /**
@@ -40,9 +38,9 @@ abstract contract GasCompensator {
     if (eligible) {
       uint256 startGas = gasleft();
       _;
-      uint256 toCompensate = startGas.sub(gasleft()).add(extra).add(10e3).mul(gasCompensationVault.getBasefee());
+      uint256 gasToCompensate = startGas.sub(gasleft()).add(extra).add(10e3);
 
-      gasCompensationVault.compensateGas(account, toCompensate);
+      gasCompensationVault.compensateGas(account, gasToCompensate);
     } else {
       _;
     }

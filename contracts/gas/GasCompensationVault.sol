@@ -24,12 +24,13 @@ contract GasCompensationVault {
   /**
    * @notice function to compensate gas by sending amount eth to a recipient
    * @param recipient address to receive amount eth
-   * @param amount the amount of eth to receive
+   * @param gasAmount the amount of gas to be compensated
    * */
-  function compensateGas(address recipient, uint256 amount) external onlyGovernance {
+  function compensateGas(address recipient, uint256 gasAmount) external onlyGovernance {
     uint256 vaultBalance = address(this).balance;
+    uint256 toCompensate = gasAmount * block.basefee;
     if (vaultBalance == 0) return;
-    payable(recipient).send((amount > vaultBalance) ? vaultBalance : amount);
+    payable(recipient).send((toCompensate > vaultBalance) ? vaultBalance : toCompensate);
   }
 
   /**
@@ -45,12 +46,4 @@ contract GasCompensationVault {
    * @notice receive ether function, does nothing but receive ether
    * */
   receive() external payable {}
-
-  /**
-   * @notice function to get the current block basefee
-   * @return the basefee
-   * */
-  function getBasefee() external view returns (uint256) {
-    return block.basefee;
-  }
 }
