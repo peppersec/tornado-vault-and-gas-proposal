@@ -60,7 +60,10 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
       "TORN: transfer failed"
     );
 
-    uint256 amountOfTornToAuctionOff = 100 ether;
+    uint96 amountOfTornToAuctionOff = 787 ether;
+    uint96 minBuyAmount = 11.5 ether;
+    uint256 minBidInTorn = 10 ether;
+    uint256 fundingThreshold = 9 ether;
 
     TornadoAuctionHandler auctionHandler = new TornadoAuctionHandler();
 
@@ -72,6 +75,6 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     As with above, please see:
     https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/contracts/auction/Auction.md
     */
-    auctionHandler.initializeAuction(block.timestamp + 5 days, uint96(amountOfTornToAuctionOff), 151e16, 0.01 ether, 5 ether);
+    auctionHandler.initializeAuction(block.timestamp + 5 days, amountOfTornToAuctionOff, minBuyAmount, minBidInTorn, fundingThreshold);
   }
 }
