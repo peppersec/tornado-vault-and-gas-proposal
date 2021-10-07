@@ -61,7 +61,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     );
 
     uint96 amountOfTornToAuctionOff = 787 ether;
-    uint96 minBuyAmount = 11.5 ether;
+    uint96 minBuyAmount = 11 ether;
     uint256 minBidInTorn = 10 ether;
     uint256 fundingThreshold = 9 ether;
 
