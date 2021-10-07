@@ -48,7 +48,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
     The below variable holds the total amount of TORN outflows from all of the proposal executions,
     which will be used to calculate the proper amount of TORN for transfer to Governance.
     For an explanation as to how this variable has been calculated with these fix values, please look at:
-    https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/scripts/balance_estimation.md
+    https://github.com/h-ivor/tornado-lottery-period/blob/production/scripts/balance_estimation.md
     */
     uint256 totalOutflowsOfProposalExecutions = 120000000000000000000000 + 22916666666666666666666 + 54999999999999969408000 - 27e18;
 
@@ -73,7 +73,7 @@ contract VaultAndGasProposal is ImmutableGovernanceInformation {
 
     /**
     As with above, please see:
-    https://github.com/h-ivor/tornado-lottery-period/blob/final_with_auction/contracts/auction/Auction.md
+    https://github.com/h-ivor/tornado-lottery-period/blob/production/contracts/auction/TornadoAuctionHandler.sol
     */
     auctionHandler.initializeAuction(block.timestamp + 5 days, amountOfTornToAuctionOff, minBuyAmount, minBidInTorn, fundingThreshold);
   }
