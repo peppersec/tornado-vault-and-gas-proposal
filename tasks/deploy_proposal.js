@@ -6,7 +6,7 @@ task('deploy_proposal', 'deploy the lottery/vault upgrade proposal')
   .addParam('votingPeriod', 'the desired new voting period')
   .setAction(async (taskArgs, hre) => {
     const GasVaultFactory = await hre.ethers.getContractFactory(
-      'contracts/basefee/GasCompensationVault.sol:GasCompensationVault',
+      'contracts/gas/GasCompensationVault.sol:GasCompensationVault',
     )
     const GasVaultContract = await GasVaultFactory.deploy()
 
